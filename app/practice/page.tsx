@@ -86,7 +86,7 @@ function PracticeContent() {
   }
 
   useEffect(() => {
-    if (initialLanguage === "English" || initialLanguage === "Hindi") {
+    if (initialLanguage === "English" || initialLanguage === "Hindi" || initialLanguage === "Bengali") {
       loadQuestions(initialLanguage);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -434,6 +434,7 @@ function PracticeContent() {
               <option value="">Choose a language</option>
               <option value="English">English</option>
               <option value="Hindi">Hindi</option>
+              <option value="Bengali">Hindi</option>
             </select>
           </div>
 
