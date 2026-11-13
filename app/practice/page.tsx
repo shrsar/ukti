@@ -434,7 +434,7 @@ function PracticeContent() {
               <option value="">Choose a language</option>
               <option value="English">English</option>
               <option value="Hindi">Hindi</option>
-              <option value="Bengali">Hindi</option>
+              <option value="Bengali">Bengali</option>
             </select>
           </div>
 
