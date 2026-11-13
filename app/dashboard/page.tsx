@@ -24,6 +24,7 @@ export default function Dashboard() {
 
   const [supabase] = useState(() => createClient());
   const [loading, setLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -59,43 +60,54 @@ export default function Dashboard() {
     }
   }
 
+  // Check authentication without redirecting logged-out visitors.
   useEffect(() => {
     let active = true;
 
-    const getUser = async () => {
-      const { data, error } = await supabase.auth.getUser();
+    async function checkUser() {
+      try {
+        const { data, error } = await supabase.auth.getUser();
 
-      if (!active) return;
+        if (!active) return;
 
-      if (error || !data.user) {
-        router.replace("/login");
-        return;
+        if (error || !data.user) {
+          setIsAuthenticated(false);
+          setLoading(false);
+          return;
+        }
+
+        setIsAuthenticated(true);
+        setLoading(false);
+
+        void fetchNotifications();
+      } catch {
+        if (!active) return;
+
+        setIsAuthenticated(false);
+        setLoading(false);
       }
+    }
 
-      setLoading(false);
-      fetchNotifications();
-    };
-
-    getUser();
+    void checkUser();
 
     return () => {
       active = false;
     };
   }, [router, supabase]);
 
-  // Check authentication before navigating to lessons.
+  // Logged-out users go to signup; logged-in users go to lessons.
   async function handleStartLearning() {
     try {
       const { data, error } = await supabase.auth.getUser();
 
       if (error || !data.user) {
-        router.push("/login");
+        router.push("/signup");
         return;
       }
 
       router.push("/lessons");
     } catch {
-      router.push("/login");
+      router.push("/signup");
     }
   }
 
@@ -196,7 +208,7 @@ export default function Dashboard() {
     return (
       <main className="Ukti-page">
         <p style={{ textAlign: "center", padding: "80px 20px" }}>
-          Loading your Ukti dashboard...
+          Loading Ukti...
         </p>
       </main>
     );
@@ -219,206 +231,210 @@ export default function Dashboard() {
         </nav>
 
         <div className="nav-actions">
-          {/* NOTIFICATIONS */}
-          <div style={{ position: "relative" }}>
-            <button
-              type="button"
-              className="notification-button"
-              aria-label={`Notifications, ${unreadCount} unread`}
-              aria-expanded={notificationsOpen}
-              onClick={() => {
-                const opening = !notificationsOpen;
-                setNotificationsOpen(opening);
+          {isAuthenticated && (
+            <>
+              {/* NOTIFICATIONS */}
+              <div style={{ position: "relative" }}>
+                <button
+                  type="button"
+                  className="notification-button"
+                  aria-label={`Notifications, ${unreadCount} unread`}
+                  aria-expanded={notificationsOpen}
+                  onClick={() => {
+                    const opening = !notificationsOpen;
+                    setNotificationsOpen(opening);
 
-                if (opening) {
-                  fetchNotifications();
-                }
-              }}
-              style={{ position: "relative" }}
-            >
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path
-                  d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.8"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-
-              {unreadCount > 0 && (
-                <span
-                  style={{
-                    position: "absolute",
-                    top: "3px",
-                    right: "3px",
-                    width: "10px",
-                    height: "10px",
-                    borderRadius: "50%",
-                    background: "#e53935",
-                    border: "2px solid white",
+                    if (opening) {
+                      void fetchNotifications();
+                    }
                   }}
-                />
-              )}
-            </button>
-
-            {notificationsOpen && (
-              <div
-                role="region"
-                aria-label="Your notifications"
-                style={{
-                  position: "absolute",
-                  top: "calc(100% + 12px)",
-                  right: 0,
-                  width: "min(360px, calc(100vw - 32px))",
-                  maxHeight: "430px",
-                  overflowY: "auto",
-                  background: "#ffffff",
-                  color: "#222222",
-                  border: "1px solid #e8e8e8",
-                  borderRadius: "14px",
-                  boxShadow: "0 8px 30px rgba(0,0,0,0.14)",
-                  zIndex: 1000,
-                  padding: "16px",
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    gap: "10px",
-                    marginBottom: "14px",
-                  }}
+                  style={{ position: "relative" }}
                 >
-                  <h3 style={{ margin: 0, fontSize: "17px" }}>
-                    Notifications
-                  </h3>
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path
+                      d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
 
                   {unreadCount > 0 && (
-                    <button
-                      type="button"
-                      onClick={markAllAsRead}
+                    <span
                       style={{
-                        border: "none",
-                        background: "none",
-                        color: "#7652c8",
-                        cursor: "pointer",
-                        fontSize: "12px",
-                        fontWeight: 600,
+                        position: "absolute",
+                        top: "3px",
+                        right: "3px",
+                        width: "10px",
+                        height: "10px",
+                        borderRadius: "50%",
+                        background: "#e53935",
+                        border: "2px solid white",
                       }}
-                    >
-                      Mark all as read
-                    </button>
+                    />
                   )}
-                </div>
+                </button>
 
-                {notificationError && (
-                  <p
-                    role="alert"
+                {notificationsOpen && (
+                  <div
+                    role="region"
+                    aria-label="Your notifications"
                     style={{
-                      fontSize: "13px",
-                      color: "#c62828",
-                    }}
-                  >
-                    {notificationError}
-                  </p>
-                )}
-
-                {notificationsLoading && (
-                  <p style={{ fontSize: "13px" }}>
-                    Loading notifications...
-                  </p>
-                )}
-
-                {!notificationsLoading &&
-                  notifications.length === 0 && (
-                    <p
-                      style={{
-                        textAlign: "center",
-                        padding: "24px 8px",
-                        fontSize: "14px",
-                        color: "#777777",
-                      }}
-                    >
-                      You're all caught up. No notifications yet.
-                    </p>
-                  )}
-
-                {notifications.map((notification) => (
-                  <button
-                    key={notification.id}
-                    type="button"
-                    onClick={() => openNotification(notification)}
-                    style={{
-                      display: "block",
-                      width: "100%",
-                      textAlign: "left",
-                      border: "none",
-                      borderBottom: "1px solid #eeeeee",
-                      background: notification.read_at
-                        ? "#ffffff"
-                        : "#f6f2ff",
-                      padding: "13px 10px",
-                      cursor: "pointer",
-                      borderRadius: "8px",
+                      position: "absolute",
+                      top: "calc(100% + 12px)",
+                      right: 0,
+                      width: "min(360px, calc(100vw - 32px))",
+                      maxHeight: "430px",
+                      overflowY: "auto",
+                      background: "#ffffff",
                       color: "#222222",
+                      border: "1px solid #e8e8e8",
+                      borderRadius: "14px",
+                      boxShadow: "0 8px 30px rgba(0,0,0,0.14)",
+                      zIndex: 1000,
+                      padding: "16px",
                     }}
                   >
                     <div
                       style={{
                         display: "flex",
                         justifyContent: "space-between",
-                        alignItems: "flex-start",
-                        gap: "8px",
+                        alignItems: "center",
+                        gap: "10px",
+                        marginBottom: "14px",
                       }}
                     >
-                      <strong style={{ fontSize: "13px" }}>
-                        {notification.title}
-                      </strong>
+                      <h3 style={{ margin: 0, fontSize: "17px" }}>
+                        Notifications
+                      </h3>
 
-                      {!notification.read_at && (
-                        <span
-                          aria-label="Unread"
+                      {unreadCount > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => void markAllAsRead()}
                           style={{
-                            flexShrink: 0,
-                            width: "8px",
-                            height: "8px",
-                            marginTop: "4px",
-                            borderRadius: "50%",
-                            background: "#7652c8",
+                            border: "none",
+                            background: "none",
+                            color: "#7652c8",
+                            cursor: "pointer",
+                            fontSize: "12px",
+                            fontWeight: 600,
                           }}
-                        />
+                        >
+                          Mark all as read
+                        </button>
                       )}
                     </div>
 
-                    <p
-                      style={{
-                        fontSize: "12px",
-                        lineHeight: 1.5,
-                        margin: "6px 0",
-                        color: "#555555",
-                      }}
-                    >
-                      {notification.message}
-                    </p>
+                    {notificationError && (
+                      <p
+                        role="alert"
+                        style={{
+                          fontSize: "13px",
+                          color: "#c62828",
+                        }}
+                      >
+                        {notificationError}
+                      </p>
+                    )}
 
-                    <span
-                      style={{
-                        fontSize: "11px",
-                        color: "#888888",
-                      }}
-                    >
-                      {new Date(notification.created_at).toLocaleString()}
-                    </span>
-                  </button>
-                ))}
+                    {notificationsLoading && (
+                      <p style={{ fontSize: "13px" }}>
+                        Loading notifications...
+                      </p>
+                    )}
+
+                    {!notificationsLoading &&
+                      notifications.length === 0 && (
+                        <p
+                          style={{
+                            textAlign: "center",
+                            padding: "24px 8px",
+                            fontSize: "14px",
+                            color: "#777777",
+                          }}
+                        >
+                          You're all caught up. No notifications yet.
+                        </p>
+                      )}
+
+                    {notifications.map((notification) => (
+                      <button
+                        key={notification.id}
+                        type="button"
+                        onClick={() => void openNotification(notification)}
+                        style={{
+                          display: "block",
+                          width: "100%",
+                          textAlign: "left",
+                          border: "none",
+                          borderBottom: "1px solid #eeeeee",
+                          background: notification.read_at
+                            ? "#ffffff"
+                            : "#f6f2ff",
+                          padding: "13px 10px",
+                          cursor: "pointer",
+                          borderRadius: "8px",
+                          color: "#222222",
+                        }}
+                      >
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "flex-start",
+                            gap: "8px",
+                          }}
+                        >
+                          <strong style={{ fontSize: "13px" }}>
+                            {notification.title}
+                          </strong>
+
+                          {!notification.read_at && (
+                            <span
+                              aria-label="Unread"
+                              style={{
+                                flexShrink: 0,
+                                width: "8px",
+                                height: "8px",
+                                marginTop: "4px",
+                                borderRadius: "50%",
+                                background: "#7652c8",
+                              }}
+                            />
+                          )}
+                        </div>
+
+                        <p
+                          style={{
+                            fontSize: "12px",
+                            lineHeight: 1.5,
+                            margin: "6px 0",
+                            color: "#555555",
+                          }}
+                        >
+                          {notification.message}
+                        </p>
+
+                        <span
+                          style={{
+                            fontSize: "11px",
+                            color: "#888888",
+                          }}
+                        >
+                          {new Date(notification.created_at).toLocaleString()}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
-            )}
-          </div>
 
-          <ProfileMenu />
+              <ProfileMenu />
+            </>
+          )}
         </div>
       </header>
 
@@ -464,17 +480,14 @@ export default function Dashboard() {
             Make every word count with Ukti.
           </p>
 
-          <a
-            href="/lessons"
+          <button
+            type="button"
             className="start-button"
-            onClick={(event) => {
-              event.preventDefault();
-              void handleStartLearning();
-            }}
+            onClick={() => void handleStartLearning()}
           >
             Start Learning
             <span aria-hidden="true">→</span>
-          </a>
+          </button>
 
           <div className="hero-caption">
             <span className="caption-line" />
