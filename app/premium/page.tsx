@@ -17,19 +17,17 @@ type SavedLanguage = {
 };
 
 const PREMIUM_FEATURES = [
-  "Everything included in Basic except Ads",
-  "Advanced AI-powered lessons",
+  "Everything included in Basic",
+  "No Ads",
   "Unlimited practice",
-  "Detailed progress tracking",
+  "Detailed Lessons",
 ];
 
 const BASIC_FEATURES = [
   "Ads",
-  "Beginner lessons",
-  "Limited AI-assisted learning",
   "Limited practice",
-  "Basic progress tracking",
-  "Self-paced learning",
+  "Basic Lessons",
+  "Progress tracking",
 ];
 
 export default function PremiumPage() {
