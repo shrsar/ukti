@@ -83,6 +83,22 @@ export default function Dashboard() {
     };
   }, [router, supabase]);
 
+  // Check authentication before navigating to lessons.
+  async function handleStartLearning() {
+    try {
+      const { data, error } = await supabase.auth.getUser();
+
+      if (error || !data.user) {
+        router.push("/login");
+        return;
+      }
+
+      router.push("/lessons");
+    } catch {
+      router.push("/login");
+    }
+  }
+
   async function markNotificationAsRead(notification: Notification) {
     if (notification.read_at) return;
 
@@ -195,7 +211,7 @@ export default function Dashboard() {
             Home
           </a>
 
-          <a href="/lessons">Lessons</a>
+          <Link href="/lessons">Lessons</Link>
 
           <Link href="/practice">Practice</Link>
 
@@ -448,7 +464,14 @@ export default function Dashboard() {
             Make every word count with Ukti.
           </p>
 
-          <a href="/lessons" className="start-button">
+          <a
+            href="/lessons"
+            className="start-button"
+            onClick={(event) => {
+              event.preventDefault();
+              void handleStartLearning();
+            }}
+          >
             Start Learning
             <span aria-hidden="true">→</span>
           </a>
