@@ -2,7 +2,10 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 import ProfileMenu from "@/components/ProfileMenu";
 
 type Notification = {
@@ -57,12 +60,14 @@ function NotificationMenu() {
   }
 
   useEffect(() => {
-    loadNotifications();
+    void loadNotifications();
 
-    const interval = window.setInterval(loadNotifications, 30000);
+    const interval = window.setInterval(() => {
+      void loadNotifications();
+    }, 30000);
 
     function handleFocus() {
-      loadNotifications();
+      void loadNotifications();
     }
 
     window.addEventListener("focus", handleFocus);
@@ -109,7 +114,9 @@ function NotificationMenu() {
         const data = await response.json();
 
         if (!response.ok) {
-          throw new Error(data.error || "Unable to mark notification as read.");
+          throw new Error(
+            data.error || "Unable to mark notification as read."
+          );
         }
 
         setNotifications((previous) =>
@@ -126,9 +133,7 @@ function NotificationMenu() {
       if (notification.reference_id) {
         if (notification.notification_type === "new_lesson") {
           window.location.href = `/lessons/${notification.reference_id}`;
-        } else if (
-          notification.notification_type === "new_practice"
-        ) {
+        } else if (notification.notification_type === "new_practice") {
           window.location.href = `/practice?language=${encodeURIComponent(
             notification.language
           )}`;
@@ -157,8 +162,12 @@ function NotificationMenu() {
         }
         aria-expanded={open}
         onClick={() => {
-          setOpen((current) => !current);
-          loadNotifications();
+          const nextOpen = !open;
+          setOpen(nextOpen);
+
+          if (nextOpen) {
+            void loadNotifications();
+          }
         }}
       >
         <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -211,7 +220,7 @@ function NotificationMenu() {
                       : "notification-item unread"
                   }
                   disabled={loading}
-                  onClick={() => openNotification(notification)}
+                  onClick={() => void openNotification(notification)}
                 >
                   <strong>{notification.title}</strong>
 
@@ -233,15 +242,67 @@ function NotificationMenu() {
 }
 
 export default function Home() {
+  const router = useRouter();
+  const [supabase] = useState(() => createClient());
+
+  // Check authentication before navigating to a protected section.
+  async function navigateWithAuth(destination: string) {
+    try {
+      const {
+        data: { user },
+        error,
+      } = await supabase.auth.getUser();
+
+      if (error || !user) {
+        router.push("/signup");
+        return;
+      }
+
+      router.push(destination);
+    } catch (error) {
+      console.error("Authentication check failed:", error);
+      router.push("/signup");
+    }
+  }
+
   return (
     <main className="Ukti-page" id="home">
       {/* NAVIGATION */}
       <header className="navbar">
         <nav className="nav-links">
-          <a className="active" href="#home">Home</a>
-          <a href="/dashboard#lessons">Lessons</a>
-          <a href="/dashboard#practice">Practice</a>
-          <a href="/dashboard#progress">Progress</a>
+          <Link className="active" href="/">
+            Home
+          </Link>
+
+          <a
+            href="/signup"
+            onClick={(event) => {
+              event.preventDefault();
+              void navigateWithAuth("/lessons");
+            }}
+          >
+            Lessons
+          </a>
+
+          <a
+            href="/signup"
+            onClick={(event) => {
+              event.preventDefault();
+              void navigateWithAuth("/practice");
+            }}
+          >
+            Practice
+          </a>
+
+          <a
+            href="/signup"
+            onClick={(event) => {
+              event.preventDefault();
+              void navigateWithAuth("/practice");
+            }}
+          >
+            Progress
+          </a>
         </nav>
 
         <div className="nav-actions">
@@ -292,7 +353,14 @@ export default function Home() {
             Make every word count with Ukti.
           </p>
 
-          <a href="#lessons" className="start-button">
+          <a
+            href="/signup"
+            className="start-button"
+            onClick={(event) => {
+              event.preventDefault();
+              void navigateWithAuth("/lessons");
+            }}
+          >
             Start Learning
             <span aria-hidden="true">→</span>
           </a>
