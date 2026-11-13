@@ -80,6 +80,8 @@ function tokenize(text: string): string[] {
   ).map((word: string) => word.toLocaleLowerCase());
 }
 
+// Checks access to an individual question.
+// Free questions do not require language enrollment.
 async function getAccessibleQuestion(
   adminDb: any,
   userId: string,
@@ -94,39 +96,67 @@ async function getAccessibleQuestion(
     .eq("status", "published")
     .maybeSingle();
 
-  if (error || !question) {
+  if (error) {
+    return {
+      error: "Unable to retrieve practice question.",
+      status: 500,
+    };
+  }
+
+  if (!question) {
     return {
       error: "Published practice question not found.",
       status: 404,
     };
   }
 
-  const { data: enrolment, error: enrolmentError } = await adminDb
-    .from("user_languages")
-    .select("selected_plan, subscription_status")
-    .eq("user_id", userId)
-    .eq("language", question.language)
-    .maybeSingle();
-
-  if (enrolmentError || !enrolment) {
-    return {
-      error: "You are not enrolled in this language.",
-      status: 403,
-    };
+  // FREE QUESTIONS: No enrollment required.
+  if (question.access_tier === "free") {
+    return { question };
   }
 
-  const hasPremium =
-    enrolment.selected_plan === "premium" &&
-    enrolment.subscription_status === "active";
+  // PREMIUM QUESTIONS: Check enrollment and subscription.
+  if (question.access_tier === "premium") {
+    const { data: enrolment, error: enrolmentError } =
+      await adminDb
+        .from("user_languages")
+        .select("selected_plan, subscription_status")
+        .eq("user_id", userId)
+        .eq("language", question.language)
+        .maybeSingle();
 
-  if (question.access_tier === "premium" && !hasPremium) {
-    return {
-      error: "This question requires an active Premium subscription.",
-      status: 403,
-    };
+    if (enrolmentError) {
+      return {
+        error: "Unable to verify your language subscription.",
+        status: 500,
+      };
+    }
+
+    if (!enrolment) {
+      return {
+        error: "You need an active Premium subscription to access this question.",
+        status: 403,
+      };
+    }
+
+    const hasPremium =
+      enrolment.selected_plan === "premium" &&
+      enrolment.subscription_status === "active";
+
+    if (!hasPremium) {
+      return {
+        error: "This question requires an active Premium subscription.",
+        status: 403,
+      };
+    }
+
+    return { question };
   }
 
-  return { question };
+  return {
+    error: "Invalid practice question access setting.",
+    status: 403,
+  };
 }
 
 export async function GET(request: NextRequest) {
@@ -148,6 +178,8 @@ export async function GET(request: NextRequest) {
     );
   }
 
+  // Enrollment is optional for free questions.
+  // If there is no enrollment, the user simply has no Premium access.
   const { data: enrolment, error: enrolmentError } =
     await context.adminDb
       .from("user_languages")
@@ -156,17 +188,18 @@ export async function GET(request: NextRequest) {
       .eq("language", language)
       .maybeSingle();
 
-  if (enrolmentError || !enrolment) {
+  if (enrolmentError) {
     return NextResponse.json(
-      { error: "You are not enrolled in this language." },
-      { status: 403 }
+      { error: "Unable to verify language enrollment." },
+      { status: 500 }
     );
   }
 
   const hasPremium =
-    enrolment.selected_plan === "premium" &&
-    enrolment.subscription_status === "active";
+    enrolment?.selected_plan === "premium" &&
+    enrolment?.subscription_status === "active";
 
+  // Fetch published questions.
   const { data, error } = await context.adminDb
     .from("practice_questions")
     .select(
@@ -184,9 +217,14 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const accessibleQuestions = ((data || []) as PracticeQuestion[]).filter(
+  // Free questions are always accessible.
+  // Premium questions are returned only to active Premium users.
+  const accessibleQuestions = (
+    (data || []) as PracticeQuestion[]
+  ).filter(
     (question) =>
-      question.access_tier === "free" || hasPremium
+      question.access_tier === "free" ||
+      (question.access_tier === "premium" && hasPremium)
   );
 
   const questionIds = accessibleQuestions.map(
@@ -215,6 +253,7 @@ export async function GET(request: NextRequest) {
     progressRows = (progress || []) as ProgressRow[];
   }
 
+  // Keep the latest progress entry for each question.
   const latestProgress = new Map<
     string,
     {
@@ -352,8 +391,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Normalize the MIME type before sending the recording to Sarvam.
-    // Example: audio/webm;codecs=opus becomes audio/webm.
+    // Normalize MIME type before sending the recording to Sarvam.
     const normalizedMimeType = (
       audio.type || "application/octet-stream"
     )
@@ -399,7 +437,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Preserve the original bytes while using the normalized MIME type.
     const audioBytes = await audio.arrayBuffer();
 
     const normalizedAudio = new Blob([audioBytes], {
