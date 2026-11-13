@@ -4,20 +4,30 @@ import { getAdminContext } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
 
+const SUPPORTED_LANGUAGES = ["English", "Hindi", "Bengali"];
+
+function getLocale(language: string) {
+  const locales: Record<string, string> = {
+    English: "en-IN",
+    Hindi: "hi-IN",
+    Bengali: "bn-IN",
+  };
+
+  return locales[language] || null;
+}
+
 function validateQuestion(body: any) {
   if (
-    !body.language ||
-    !["English", "Hindi"].includes(body.language) ||
+    !SUPPORTED_LANGUAGES.includes(body.language) ||
     !body.title?.trim() ||
     !body.reference_text?.trim()
   ) {
-    return "Choose English or Hindi and provide a title and sentence.";
+    return "Choose English, Hindi or Bengali and provide a title and sentence.";
   }
 
-  const expectedLocale =
-    body.language === "Hindi" ? "hi-IN" : "en-IN";
+  const expectedLocale = getLocale(body.language);
 
-  if (body.locale !== expectedLocale) {
+  if (!expectedLocale || body.locale !== expectedLocale) {
     return "The language locale does not match the selected language.";
   }
 
@@ -36,7 +46,6 @@ function validateQuestion(body: any) {
   return null;
 }
 
-// Create notifications for eligible enrolled users.
 async function createPracticeNotifications(
   adminDb: any,
   question: {
@@ -87,8 +96,6 @@ async function createPracticeNotifications(
 
   eligibleUsers = eligibleUsers.filter((item: any) => {
     const preference = preferenceMap.get(item.user_id);
-
-    // Users without a preference row are enabled by default.
     return preference !== false;
   });
 

@@ -25,8 +25,13 @@ const emptyForm = {
 };
 
 function getLocale(language: string) {
-  if (language === "Hindi") return "hi-IN";
-  return "en-IN";
+  const locales: Record<string, string> = {
+    English: "en-IN",
+    Hindi: "hi-IN",
+    Bengali: "bn-IN",
+  };
+
+  return locales[language] || "en-IN";
 }
 
 export default function AdminPracticePage() {
@@ -46,7 +51,9 @@ export default function AdminPracticePage() {
       const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.error || "Unable to load practice questions.");
+        throw new Error(
+          result.error || "Unable to load practice questions."
+        );
       }
 
       setQuestions(result.questions || []);
@@ -58,13 +65,10 @@ export default function AdminPracticePage() {
   }
 
   useEffect(() => {
-    loadQuestions();
+    void loadQuestions();
   }, []);
 
-  function updateForm(
-    field: keyof typeof emptyForm,
-    value: string
-  ) {
+  function updateForm(field: keyof typeof emptyForm, value: string) {
     setForm((previous) => ({ ...previous, [field]: value }));
   }
 
@@ -175,6 +179,13 @@ export default function AdminPracticePage() {
     }
   }
 
+  const sentencePlaceholder =
+    form.language === "Hindi"
+      ? "उदाहरण: आज आप कैसा महसूस कर रहे हैं?"
+      : form.language === "Bengali"
+        ? "উদাহরণ: আজ আপনি কেমন আছেন?"
+        : "Example: How are you feeling today?";
+
   return (
     <main className="premium-page">
       <nav className="navbar">
@@ -190,13 +201,14 @@ export default function AdminPracticePage() {
           </h1>
 
           <p>
-            Create a sentence for students to read aloud in English or Hindi.
+            Create a sentence for students to read aloud in English, Hindi
+            or Bengali.
           </p>
 
           <form
             onSubmit={(event) => {
               event.preventDefault();
-              saveQuestion("draft");
+              void saveQuestion("draft");
             }}
           >
             <div className="account-field">
@@ -211,6 +223,7 @@ export default function AdminPracticePage() {
               >
                 <option value="English">English</option>
                 <option value="Hindi">Hindi</option>
+                <option value="Bengali">Bengali</option>
               </select>
             </div>
 
@@ -249,11 +262,7 @@ export default function AdminPracticePage() {
                 onChange={(event) =>
                   updateForm("referenceText", event.target.value)
                 }
-                placeholder={
-                  form.language === "Hindi"
-                    ? "उदाहरण: आज आप कैसा महसूस कर रहे हैं?"
-                    : "Example: How are you feeling today?"
-                }
+                placeholder={sentencePlaceholder}
                 rows={4}
                 required
               />
@@ -288,7 +297,7 @@ export default function AdminPracticePage() {
               className="account-primary-button"
               type="button"
               disabled={loading}
-              onClick={() => saveQuestion("published")}
+              onClick={() => void saveQuestion("published")}
             >
               {loading ? "Saving..." : "Publish Question"}
             </button>
@@ -351,7 +360,7 @@ export default function AdminPracticePage() {
                 <button
                   className="account-danger-button"
                   type="button"
-                  onClick={() => deleteQuestion(question.id)}
+                  onClick={() => void deleteQuestion(question.id)}
                 >
                   Delete
                 </button>

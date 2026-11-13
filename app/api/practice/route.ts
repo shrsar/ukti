@@ -23,11 +23,23 @@ type PracticeQuestion = {
   title: string;
   description: string | null;
   reference_text: string;
-  locale: string;
+  locale: string | null;
   access_tier: "free" | "premium";
   status: string;
   created_at: string;
 };
+
+const SUPPORTED_LANGUAGES = ["English", "Hindi", "Bengali"];
+
+function getLocale(language: string) {
+  const locales: Record<string, string> = {
+    English: "en-IN",
+    Hindi: "hi-IN",
+    Bengali: "bn-IN",
+  };
+
+  return locales[language] || "en-IN";
+}
 
 async function getStudentContext() {
   const cookieStore = await cookies();
@@ -72,12 +84,13 @@ async function getStudentContext() {
   return { user, adminDb };
 }
 
+// NFC normalization and Unicode marks are important for Bengali and Hindi.
 function tokenize(text: string): string[] {
   return (
     text.normalize("NFC").match(
-      /[\p{L}\p{N}]+(?:['’][\p{L}\p{N}]+)*/gu
+      /[\p{L}\p{M}\p{N}]+(?:['’][\p{L}\p{M}\p{N}]+)*/gu
     ) || []
-  ).map((word: string) => word.toLocaleLowerCase());
+  ).map((word) => word.normalize("NFC").toLocaleLowerCase());
 }
 
 // Checks access to an individual question.
@@ -110,12 +123,19 @@ async function getAccessibleQuestion(
     };
   }
 
-  // FREE QUESTIONS: No enrollment required.
+  if (!SUPPORTED_LANGUAGES.includes(question.language)) {
+    return {
+      error: "This question uses an unsupported language.",
+      status: 400,
+    };
+  }
+
+  // Free questions are accessible to logged-in users without enrollment.
   if (question.access_tier === "free") {
     return { question };
   }
 
-  // PREMIUM QUESTIONS: Check enrollment and subscription.
+  // Premium questions require an active Premium enrollment.
   if (question.access_tier === "premium") {
     const { data: enrolment, error: enrolmentError } =
       await adminDb
@@ -134,7 +154,8 @@ async function getAccessibleQuestion(
 
     if (!enrolment) {
       return {
-        error: "You need an active Premium subscription to access this question.",
+        error:
+          "You need an active Premium subscription to access this question.",
         status: 403,
       };
     }
@@ -145,7 +166,8 @@ async function getAccessibleQuestion(
 
     if (!hasPremium) {
       return {
-        error: "This question requires an active Premium subscription.",
+        error:
+          "This question requires an active Premium subscription.",
         status: 403,
       };
     }
@@ -171,15 +193,14 @@ export async function GET(request: NextRequest) {
 
   const language = request.nextUrl.searchParams.get("language");
 
-  if (!language || !["English", "Hindi"].includes(language)) {
+  if (!language || !SUPPORTED_LANGUAGES.includes(language)) {
     return NextResponse.json(
-      { error: "Choose English or Hindi." },
+      { error: "Choose English, Hindi or Bengali." },
       { status: 400 }
     );
   }
 
   // Enrollment is optional for free questions.
-  // If there is no enrollment, the user simply has no Premium access.
   const { data: enrolment, error: enrolmentError } =
     await context.adminDb
       .from("user_languages")
@@ -199,7 +220,6 @@ export async function GET(request: NextRequest) {
     enrolment?.selected_plan === "premium" &&
     enrolment?.subscription_status === "active";
 
-  // Fetch published questions.
   const { data, error } = await context.adminDb
     .from("practice_questions")
     .select(
@@ -217,8 +237,6 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  // Free questions are always accessible.
-  // Premium questions are returned only to active Premium users.
   const accessibleQuestions = (
     (data || []) as PracticeQuestion[]
   ).filter(
@@ -276,6 +294,7 @@ export async function GET(request: NextRequest) {
 
     return {
       ...question,
+      locale: question.locale || getLocale(question.language),
       completed: progress?.completed || false,
       progress_status: progress?.progress_status || "in_progress",
     };
@@ -296,7 +315,6 @@ export async function POST(request: NextRequest) {
 
   try {
     const formData = await request.formData();
-
     const action = String(formData.get("action") || "transcribe");
     const questionId = String(formData.get("questionId") || "");
 
@@ -391,7 +409,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Normalize MIME type before sending the recording to Sarvam.
     const normalizedMimeType = (
       audio.type || "application/octet-stream"
     )
@@ -455,7 +472,7 @@ export async function POST(request: NextRequest) {
     sarvamForm.append("mode", "transcribe");
     sarvamForm.append(
       "language_code",
-      question.locale || "en-IN"
+      question.locale || getLocale(question.language)
     );
 
     const sarvamResponse = await fetch(
@@ -503,8 +520,8 @@ export async function POST(request: NextRequest) {
     const spokenWords = tokenize(transcript);
 
     const referenceTokens =
-      question.reference_text.match(
-        /[\p{L}\p{N}]+(?:['’][\p{L}\p{N}]+)*/gu
+      question.reference_text.normalize("NFC").match(
+        /[\p{L}\p{M}\p{N}]+(?:['’][\p{L}\p{M}\p{N}]+)*/gu
       ) || [];
 
     const words: WordResult[] = referenceTokens.map(
@@ -529,7 +546,6 @@ export async function POST(request: NextRequest) {
       (matchedCount / targetWords.length) * 100
     );
 
-    // Record the assessment result.
     const { error: progressError } = await context.adminDb
       .from("user_practice_progress")
       .insert({

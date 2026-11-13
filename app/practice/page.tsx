@@ -14,9 +14,9 @@ type Question = {
   id: string;
   language: string;
   title: string;
-  description: string;
+  description: string | null;
   reference_text: string;
-  locale: string;
+  locale: string | null;
   access_tier: "free" | "premium";
   completed?: boolean;
   progress_status?: "in_progress" | "completed" | "skipped";
@@ -66,7 +66,9 @@ function PracticeContent() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || "Unable to load practice questions.");
+        throw new Error(
+          data.error || "Unable to load practice questions."
+        );
       }
 
       setQuestions(data.questions || []);
@@ -78,7 +80,9 @@ function PracticeContent() {
       }
     } catch (error) {
       setMessage(
-        error instanceof Error ? error.message : "Something went wrong."
+        error instanceof Error
+          ? error.message
+          : "Something went wrong."
       );
     } finally {
       setLoading(false);
@@ -86,9 +90,12 @@ function PracticeContent() {
   }
 
   useEffect(() => {
-    if (initialLanguage === "English" || initialLanguage === "Hindi" || initialLanguage === "Bengali") {
-      loadQuestions(initialLanguage);
+    if (
+      ["English", "Hindi", "Bengali"].includes(initialLanguage)
+    ) {
+      void loadQuestions(initialLanguage);
     }
+    // Load only the language supplied in the initial URL.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -131,7 +138,6 @@ function PracticeContent() {
     setRecording(false);
   }
 
-  // Normalize browser MIME types such as audio/webm;codecs=opus.
   function getSupportedMimeType(mimeType: string) {
     const normalized = mimeType.split(";")[0].trim().toLowerCase();
 
@@ -147,7 +153,10 @@ function PracticeContent() {
       return { mimeType: "audio/ogg", extension: "ogg" };
     }
 
-    if (normalized === "audio/wav" || normalized === "audio/x-wav") {
+    if (
+      normalized === "audio/wav" ||
+      normalized === "audio/x-wav"
+    ) {
       return { mimeType: "audio/wav", extension: "wav" };
     }
 
@@ -166,7 +175,10 @@ function PracticeContent() {
 
     clearFeedback();
 
-    if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) {
+    if (
+      !navigator.mediaDevices?.getUserMedia ||
+      !window.MediaRecorder
+    ) {
       setMessage(
         "Audio recording is not supported by this browser. Please use a recent version of Chrome."
       );
@@ -204,7 +216,9 @@ function PracticeContent() {
       };
 
       recorder.onerror = () => {
-        setMessage("An error occurred while recording. Please try again.");
+        setMessage(
+          "An error occurred while recording. Please try again."
+        );
         setRecording(false);
 
         stream.getTracks().forEach((track) => track.stop());
@@ -214,7 +228,6 @@ function PracticeContent() {
       recorder.onstop = async () => {
         const format = getSupportedMimeType(recorder.mimeType);
 
-        // Keep the original audio bytes but remove the codecs suffix.
         const audioBlob = new Blob(chunksRef.current, {
           type: format.mimeType,
         });
@@ -231,7 +244,6 @@ function PracticeContent() {
       };
 
       recorder.start();
-
       setRecording(true);
       setMessage("Recording. Speak the complete sentence clearly.");
 
@@ -277,7 +289,6 @@ function PracticeContent() {
         audioBlob,
         `speaking-recording.${extension}`
       );
-
       formData.append("questionId", question.id);
 
       const response = await fetch("/api/practice", {
@@ -318,7 +329,9 @@ function PracticeContent() {
       );
     } catch (error) {
       setMessage(
-        error instanceof Error ? error.message : "Something went wrong."
+        error instanceof Error
+          ? error.message
+          : "Something went wrong."
       );
     } finally {
       setSubmitting(false);
@@ -328,7 +341,13 @@ function PracticeContent() {
   async function skipQuestion() {
     const question = questions[index];
 
-    if (!question || completed || submitting || recording || loading) {
+    if (
+      !question ||
+      completed ||
+      submitting ||
+      recording ||
+      loading
+    ) {
       return;
     }
 
@@ -368,7 +387,9 @@ function PracticeContent() {
       clearFeedback();
     } catch (error) {
       setMessage(
-        error instanceof Error ? error.message : "Unable to skip question."
+        error instanceof Error
+          ? error.message
+          : "Unable to skip question."
       );
     } finally {
       setSubmitting(false);
@@ -422,7 +443,7 @@ function PracticeContent() {
                 setLanguage(selected);
 
                 if (selected) {
-                  loadQuestions(selected);
+                  void loadQuestions(selected);
                 } else {
                   setQuestions([]);
                   setIndex(0);
@@ -480,7 +501,7 @@ function PracticeContent() {
                   className="account-primary-button"
                   type="button"
                   disabled={submitting || completed}
-                  onClick={startRecording}
+                  onClick={() => void startRecording()}
                 >
                   {submitting ? "Processing..." : "Start Speaking"}
                 </button>
@@ -510,7 +531,8 @@ function PracticeContent() {
               {wordResults.length > 0 && (
                 <div className="speaking-feedback">
                   <p>
-                    Recognised words: {recognizedCount} / {wordResults.length}
+                    Recognised words: {recognizedCount} /{" "}
+                    {wordResults.length}
                   </p>
 
                   <div className="speaking-progress-track">
@@ -521,7 +543,8 @@ function PracticeContent() {
                   </div>
 
                   <p>
-                    Your recording: {transcript || "No transcript returned."}
+                    Your recording:{" "}
+                    {transcript || "No transcript returned."}
                   </p>
                 </div>
               )}
@@ -544,7 +567,7 @@ function PracticeContent() {
                   className="account-secondary-button"
                   type="button"
                   disabled={submitting || recording}
-                  onClick={skipQuestion}
+                  onClick={() => void skipQuestion()}
                 >
                   Skip Question
                 </button>
@@ -569,7 +592,7 @@ function PracticeContent() {
                 <button
                   className="account-primary-button"
                   type="button"
-                  onClick={() => loadQuestions(language)}
+                  onClick={() => void loadQuestions(language)}
                 >
                   Practise Again
                 </button>
@@ -589,7 +612,9 @@ export default function PracticePage() {
   return (
     <Suspense
       fallback={
-        <main className="premium-page">Loading practice...</main>
+        <main className="premium-page">
+          Loading practice...
+        </main>
       }
     >
       <PracticeContent />
