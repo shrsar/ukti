@@ -39,6 +39,7 @@ function NotificationMenu() {
 
       if (response.status === 401) {
         setNotifications([]);
+        setError("");
         return;
       }
 
@@ -130,14 +131,16 @@ function NotificationMenu() {
 
       setOpen(false);
 
-      if (notification.reference_id) {
-        if (notification.notification_type === "new_lesson") {
-          window.location.href = `/lessons/${notification.reference_id}`;
-        } else if (notification.notification_type === "new_practice") {
-          window.location.href = `/practice?language=${encodeURIComponent(
-            notification.language
-          )}`;
+      if (notification.notification_type === "new_lesson") {
+        if (notification.reference_id) {
+          window.location.href = `/lesson/${notification.reference_id}`;
+        } else {
+          window.location.href = "/lesson";
         }
+      } else if (notification.notification_type === "new_practice") {
+        window.location.href = `/practice?language=${encodeURIComponent(
+          notification.language
+        )}`;
       }
     } catch (err) {
       setError(
@@ -190,6 +193,7 @@ function NotificationMenu() {
         <div className="notification-dropdown">
           <div className="notification-header">
             <h3>Notifications</h3>
+
             {unreadCount > 0 && (
               <span>{unreadCount} unread</span>
             )}
@@ -245,7 +249,8 @@ export default function Home() {
   const router = useRouter();
   const [supabase] = useState(() => createClient());
 
-  // Check authentication before navigating to a protected section.
+  // Check authentication before navigating.
+  // Logged-out users go to signup.
   async function navigateWithAuth(destination: string) {
     try {
       const {
@@ -275,17 +280,17 @@ export default function Home() {
           </Link>
 
           <a
-            href="/signup"
+            href="/lesson"
             onClick={(event) => {
               event.preventDefault();
-              void navigateWithAuth("/lessons");
+              void navigateWithAuth("/lesson");
             }}
           >
             Lessons
           </a>
 
           <a
-            href="/signup"
+            href="/practice"
             onClick={(event) => {
               event.preventDefault();
               void navigateWithAuth("/practice");
@@ -295,10 +300,10 @@ export default function Home() {
           </a>
 
           <a
-            href="/signup"
+            href="/progress"
             onClick={(event) => {
               event.preventDefault();
-              void navigateWithAuth("/practice");
+              void navigateWithAuth("/progress");
             }}
           >
             Progress
@@ -354,11 +359,11 @@ export default function Home() {
           </p>
 
           <a
-            href="/signup"
+            href="/lesson"
             className="start-button"
             onClick={(event) => {
               event.preventDefault();
-              void navigateWithAuth("/lessons");
+              void navigateWithAuth("/lesson");
             }}
           >
             Start Learning
@@ -396,6 +401,7 @@ export default function Home() {
                 />
               </svg>
             </div>
+
             <h3>Listen</h3>
             <p>
               Hear words and phrases clearly to understand
@@ -417,6 +423,7 @@ export default function Home() {
                 />
               </svg>
             </div>
+
             <h3>Speak</h3>
             <p>
               Practise speaking and develop confidence
@@ -438,6 +445,7 @@ export default function Home() {
                 />
               </svg>
             </div>
+
             <h3>Learn</h3>
             <p>
               Explore vocabulary, expressions, and
@@ -459,6 +467,7 @@ export default function Home() {
                 />
               </svg>
             </div>
+
             <h3>Track</h3>
             <p>
               Follow your progress and see how far

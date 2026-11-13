@@ -3,6 +3,7 @@
 
 import { PREMIUM_PRICE } from "@/lib/pricing";
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import ProfileMenu from "@/components/ProfileMenu";
 import { createClient } from "@/lib/supabase/client";
@@ -205,14 +206,14 @@ export default function PremiumPage() {
         }
       }
 
-      // Premium always proceeds to checkout.
+      // Premium proceeds to checkout.
       // Basic proceeds directly to lessons.
       if (selectedPlan === "premium") {
         router.push("/premium/checkout");
         return;
       }
 
-      router.push("/lessons");
+      router.push("/lesson");
     } catch (error) {
       console.error("Continue error:", error);
       setMessage("Something went wrong. Please try again.");
@@ -245,10 +246,10 @@ export default function PremiumPage() {
       {/* NAVBAR */}
       <header className="navbar">
         <nav className="nav-links">
-          <a href="/dashboard">Home</a>
-          <a href="/lessons">Lessons</a>
-          <a href="/lessons">Practice</a>
-          <a href="/lessons">Progress</a>
+          <Link href="/">Home</Link>
+          <Link href="/lesson">Lessons</Link>
+          <Link href="/practice">Practice</Link>
+          <Link href="/progress">Progress</Link>
         </nav>
 
         <div className="nav-actions">
