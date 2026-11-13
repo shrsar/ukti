@@ -249,7 +249,7 @@ export default function Home() {
   const router = useRouter();
   const [supabase] = useState(() => createClient());
 
-  // Check authentication before navigating.
+  // Logged-in users go to the requested page.
   // Logged-out users go to signup.
   async function navigateWithAuth(destination: string) {
     try {
@@ -378,7 +378,7 @@ export default function Home() {
       </section>
 
       {/* FEATURES SECTION */}
-      <section className="features-section" id="lessons">
+      <section className="features-section">
         <div className="section-heading">
           <span className="eyebrow">YOUR JOURNEY STARTS HERE</span>
           <h2>Learn at your own pace</h2>
@@ -389,7 +389,7 @@ export default function Home() {
 
         <div className="feature-grid">
           {/* LISTEN */}
-          <article className="feature-card listen-card" id="practice">
+          <article className="feature-card listen-card">
             <div className="feature-icon">
               <svg viewBox="0 0 24 24" aria-hidden="true">
                 <path
@@ -403,6 +403,7 @@ export default function Home() {
             </div>
 
             <h3>Listen</h3>
+
             <p>
               Hear words and phrases clearly to understand
               their pronunciation.
@@ -425,6 +426,7 @@ export default function Home() {
             </div>
 
             <h3>Speak</h3>
+
             <p>
               Practise speaking and develop confidence
               in your everyday conversations.
@@ -447,6 +449,7 @@ export default function Home() {
             </div>
 
             <h3>Learn</h3>
+
             <p>
               Explore vocabulary, expressions, and
               useful language lessons.
@@ -454,7 +457,7 @@ export default function Home() {
           </article>
 
           {/* TRACK */}
-          <article className="feature-card track-card" id="progress">
+          <article className="feature-card track-card">
             <div className="feature-icon">
               <svg viewBox="0 0 24 24" aria-hidden="true">
                 <path
@@ -469,6 +472,7 @@ export default function Home() {
             </div>
 
             <h3>Track</h3>
+
             <p>
               Follow your progress and see how far
               your language skills have come.
