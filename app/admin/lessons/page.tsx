@@ -2,6 +2,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import type { FormEvent } from "react";
 import Link from "next/link";
 import ProfileMenu from "@/components/ProfileMenu";
 import LessonRichTextEditor from "@/components/LessonRichTextEditor";
@@ -39,7 +40,6 @@ const emptyForm: LessonForm = {
   status: "draft",
 };
 
-// Escape legacy imported text before displaying it as HTML.
 function escapeHtml(value: string): string {
   return value
     .replace(/&/g, "&amp;")
@@ -49,11 +49,8 @@ function escapeHtml(value: string): string {
     .replace(/'/g, "&#039;");
 }
 
-// Supports both new HTML content and older imported JSON sections.
 function getEditorContent(content: Record<string, unknown>): string {
-  if (typeof content.html === "string") {
-    return content.html;
-  }
+  if (typeof content.html === "string") return content.html;
 
   const sections = Array.isArray(content.sections)
     ? content.sections
@@ -93,12 +90,14 @@ function getEditorContent(content: Record<string, unknown>): string {
               }
 
               if (example && typeof example === "object") {
-                const exampleObject = example as Record<string, unknown>;
+                const values = Object.values(
+                  example as Record<string, unknown>
+                ).filter(
+                  (value): value is string =>
+                    typeof value === "string"
+                );
 
-                const text = Object.values(exampleObject)
-                  .filter((value) => typeof value === "string")
-                  .join(" — ");
-
+                const text = values.join(" — ");
                 return text ? `<li>${escapeHtml(text)}</li>` : "";
               }
 
@@ -107,11 +106,7 @@ function getEditorContent(content: Record<string, unknown>): string {
             .join("")
         : "";
 
-      return (
-        heading +
-        explanation +
-        (examples ? `<ul>${examples}</ul>` : "")
-      );
+      return heading + explanation + (examples ? `<ul>${examples}</ul>` : "");
     })
     .join("");
 }
@@ -132,7 +127,6 @@ export default function AdminLessonsPage() {
 
     try {
       const response = await fetch("/api/admin/lessons", {
-        method: "GET",
         cache: "no-store",
       });
 
@@ -153,17 +147,14 @@ export default function AdminLessonsPage() {
   }, []);
 
   useEffect(() => {
-    loadLessons();
+    void loadLessons();
   }, [loadLessons]);
 
   function updateField<K extends keyof LessonForm>(
     field: K,
     value: LessonForm[K]
   ) {
-    setForm((previous) => ({
-      ...previous,
-      [field]: value,
-    }));
+    setForm((previous) => ({ ...previous, [field]: value }));
   }
 
   function resetForm() {
@@ -188,14 +179,10 @@ export default function AdminLessonsPage() {
 
     setMessage("");
     setError("");
-
-    window.scrollTo({
-      top: 0,
-      behavior: "smooth",
-    });
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  async function saveLesson(event: React.FormEvent<HTMLFormElement>) {
+  async function saveLesson(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     setSaving(true);
@@ -207,20 +194,18 @@ export default function AdminLessonsPage() {
       lesson_number: Number(form.lesson_number),
       title: form.title.trim(),
       description: form.description.trim(),
-      content: {
-        html: form.content,
-      },
+      content: { html: form.content },
       access_tier: form.access_tier,
       status: form.status,
     };
 
     if (
-      !payload.language ||
+      !LANGUAGES.includes(payload.language as (typeof LANGUAGES)[number]) ||
       !payload.title ||
-      !Number.isInteger(payload.lesson_number) ||
+      !Number.isSafeInteger(payload.lesson_number) ||
       payload.lesson_number < 1
     ) {
-      setError("Enter a language, title, and valid lesson number.");
+      setError("Enter a valid language, title, and lesson number.");
       setSaving(false);
       return;
     }
@@ -234,9 +219,7 @@ export default function AdminLessonsPage() {
     try {
       const response = await fetch("/api/admin/lessons", {
         method: editingId ? "PATCH" : "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(
           editingId ? { id: editingId, ...payload } : payload
         ),
@@ -248,12 +231,15 @@ export default function AdminLessonsPage() {
         throw new Error(data.error || "Could not save the lesson.");
       }
 
-      const successMessage = editingId
-        ? "Lesson updated successfully."
-        : "Lesson created successfully.";
+      const wasEditing = Boolean(editingId);
 
       resetForm();
-      setMessage(successMessage);
+
+      setMessage(
+        wasEditing
+          ? "Lesson updated successfully."
+          : "Lesson created successfully."
+      );
 
       await loadLessons();
     } catch (err) {
@@ -266,11 +252,13 @@ export default function AdminLessonsPage() {
   }
 
   async function deleteLesson(lesson: Lesson) {
-    const confirmed = window.confirm(
-      `Delete "${lesson.title}"? This may also delete its associated student progress records.`
-    );
-
-    if (!confirmed) return;
+    if (
+      !window.confirm(
+        `Delete "${lesson.title}"? This may also delete associated student progress records.`
+      )
+    ) {
+      return;
+    }
 
     setError("");
     setMessage("");
@@ -278,9 +266,7 @@ export default function AdminLessonsPage() {
     try {
       const response = await fetch("/api/admin/lessons", {
         method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: lesson.id }),
       });
 
@@ -295,7 +281,6 @@ export default function AdminLessonsPage() {
       }
 
       setMessage("Lesson deleted successfully.");
-
       await loadLessons();
     } catch (err) {
       setError(
@@ -360,7 +345,7 @@ export default function AdminLessonsPage() {
           <h2>{editingId ? "Edit lesson" : "Create a lesson"}</h2>
 
           <form onSubmit={saveLesson}>
-            <div style={{ marginBottom: "16px" }}>
+            <div style={{ marginBottom: 16 }}>
               <label htmlFor="language">Language</label>
 
               <select
@@ -382,7 +367,7 @@ export default function AdminLessonsPage() {
               </select>
             </div>
 
-            <div style={{ marginBottom: "16px" }}>
+            <div style={{ marginBottom: 16 }}>
               <label htmlFor="lesson-number">Lesson number</label>
 
               <input
@@ -398,12 +383,11 @@ export default function AdminLessonsPage() {
               />
             </div>
 
-            <div style={{ marginBottom: "16px" }}>
+            <div style={{ marginBottom: 16 }}>
               <label htmlFor="title">Lesson title</label>
 
               <input
                 id="title"
-                type="text"
                 value={form.title}
                 onChange={(event) =>
                   updateField("title", event.target.value)
@@ -414,7 +398,7 @@ export default function AdminLessonsPage() {
               />
             </div>
 
-            <div style={{ marginBottom: "16px" }}>
+            <div style={{ marginBottom: 16 }}>
               <label htmlFor="description">Description</label>
 
               <textarea
@@ -429,18 +413,18 @@ export default function AdminLessonsPage() {
               />
             </div>
 
-            <div style={{ marginBottom: "16px" }}>
+            <div style={{ marginBottom: 16 }}>
               <label>Lesson content</label>
 
               <LessonRichTextEditor
                 value={form.content}
-                onChange={(value) =>
+                onChange={(value: string) =>
                   updateField("content", value)
                 }
               />
             </div>
 
-            <div style={{ marginBottom: "16px" }}>
+            <div style={{ marginBottom: 16 }}>
               <label htmlFor="access-tier">Access type</label>
 
               <select
@@ -459,7 +443,7 @@ export default function AdminLessonsPage() {
               </select>
             </div>
 
-            <div style={{ marginBottom: "20px" }}>
+            <div style={{ marginBottom: 20 }}>
               <label htmlFor="status">Publication status</label>
 
               <select
@@ -481,7 +465,7 @@ export default function AdminLessonsPage() {
             <div
               style={{
                 display: "flex",
-                gap: "12px",
+                gap: 12,
                 flexWrap: "wrap",
               }}
             >
@@ -511,10 +495,10 @@ export default function AdminLessonsPage() {
           </form>
         </div>
 
-        <div className="checkout-card" style={{ marginTop: "28px" }}>
+        <div className="checkout-card" style={{ marginTop: 28 }}>
           <h2>Existing lessons</h2>
 
-          <div style={{ marginBottom: "20px" }}>
+          <div style={{ marginBottom: 20 }}>
             <label htmlFor="language-filter">
               Filter by language
             </label>
@@ -542,69 +526,64 @@ export default function AdminLessonsPage() {
           ) : filteredLessons.length === 0 ? (
             <p>No lessons found for this language.</p>
           ) : (
-            <div>
-              {filteredLessons.map((lesson) => (
+            filteredLessons.map((lesson) => (
+              <div
+                key={lesson.id}
+                style={{
+                  border: "1px solid #e8dce5",
+                  borderRadius: 12,
+                  padding: 16,
+                  marginBottom: 14,
+                }}
+              >
+                <h3>
+                  {lesson.language} — Lesson {lesson.lesson_number}
+                </h3>
+
+                <h4>{lesson.title}</h4>
+
+                {lesson.description && (
+                  <p>{lesson.description}</p>
+                )}
+
+                <p>
+                  Access:{" "}
+                  <strong>
+                    {lesson.access_tier.toUpperCase()}
+                  </strong>
+                </p>
+
+                <p>
+                  Status:{" "}
+                  <strong>{lesson.status.toUpperCase()}</strong>
+                </p>
+
                 <div
-                  key={lesson.id}
                   style={{
-                    border: "1px solid #e8dce5",
-                    borderRadius: "12px",
-                    padding: "16px",
-                    marginBottom: "14px",
+                    display: "flex",
+                    gap: 10,
+                    flexWrap: "wrap",
+                    marginTop: 12,
                   }}
                 >
-                  <h3>
-                    {lesson.language} — Lesson{" "}
-                    {lesson.lesson_number}
-                  </h3>
-
-                  <h4>{lesson.title}</h4>
-
-                  {lesson.description && (
-                    <p>{lesson.description}</p>
-                  )}
-
-                  <p>
-                    Access:{" "}
-                    <strong>
-                      {lesson.access_tier.toUpperCase()}
-                    </strong>
-                  </p>
-
-                  <p>
-                    Status:{" "}
-                    <strong>
-                      {lesson.status.toUpperCase()}
-                    </strong>
-                  </p>
-
-                  <div
-                    style={{
-                      display: "flex",
-                      gap: "10px",
-                      flexWrap: "wrap",
-                      marginTop: "12px",
-                    }}
+                  <button
+                    type="button"
+                    className="continue-premium-button"
+                    onClick={() => editLesson(lesson)}
                   >
-                    <button
-                      type="button"
-                      className="continue-premium-button"
-                      onClick={() => editLesson(lesson)}
-                    >
-                      Edit
-                    </button>
+                    Edit
+                  </button>
 
-                    <button
-                      type="button"
-                      className="continue-premium-button"
-                      onClick={() => deleteLesson(lesson)}
-                    >
-                      Delete
-                    </button>
-                  </div>
+                  <button
+                    type="button"
+                    className="continue-premium-button"
+                    onClick={() => void deleteLesson(lesson)}
+                  >
+                    Delete
+                  </button>
                 </div>
-              ))}
-            </div>
+              </div>
+            ))
           )}
         </div>
       </div>

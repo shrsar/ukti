@@ -25,7 +25,9 @@ export async function GET(
               cookiesToSet.forEach(({ name, value, options }) => {
                 cookieStore.set(name, value, options);
               });
-            } catch {}
+            } catch {
+              // Cookie updates may not be available in this request context.
+            }
           },
         },
       }
@@ -61,10 +63,7 @@ export async function GET(
       .maybeSingle();
 
     if (lessonError || !lesson || lesson.status !== "published") {
-      return NextResponse.json(
-        { error: "Lesson not found." },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Lesson not found." }, { status: 404 });
     }
 
     const { data: languageAccess, error: accessError } = await adminDb
@@ -100,17 +99,14 @@ export async function GET(
       .eq("lesson_id", lessonId)
       .order("created_at", { ascending: true });
 
-    if (documentsError) {
-      throw new Error(documentsError.message);
-    }
+    if (documentsError) throw documentsError;
 
     const files = [];
 
     for (const document of documents || []) {
-      const { data: signedFile, error: signedError } =
-        await adminDb.storage
-          .from("lesson-documents")
-          .createSignedUrl(document.storage_path, 3600);
+      const { data: signedFile, error: signedError } = await adminDb.storage
+        .from("lesson-documents")
+        .createSignedUrl(document.storage_path, 3600);
 
       if (signedError || !signedFile) {
         console.error("Signed URL error:", signedError?.message);

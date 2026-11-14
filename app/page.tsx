@@ -133,9 +133,9 @@ function NotificationMenu() {
 
       if (notification.notification_type === "new_lesson") {
         if (notification.reference_id) {
-          window.location.href = `/lesson/${notification.reference_id}`;
+          window.location.href = `/lessons/${notification.reference_id}`;
         } else {
-          window.location.href = "/lesson";
+          window.location.href = "/lessons";
         }
       } else if (notification.notification_type === "new_practice") {
         window.location.href = `/practice?language=${encodeURIComponent(
@@ -280,10 +280,10 @@ export default function Home() {
           </Link>
 
           <a
-            href="/lesson"
+            href="/lessons"
             onClick={(event) => {
               event.preventDefault();
-              void navigateWithAuth("/lesson");
+              void navigateWithAuth("/lessons");
             }}
           >
             Lessons
@@ -359,11 +359,11 @@ export default function Home() {
           </p>
 
           <a
-            href="/lesson"
+            href="/lessons"
             className="start-button"
             onClick={(event) => {
               event.preventDefault();
-              void navigateWithAuth("/lesson");
+              void navigateWithAuth("/lessons");
             }}
           >
             Start Learning

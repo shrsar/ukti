@@ -25,7 +25,7 @@ export default function LessonMedia({ lessonId }: Props) {
     async function loadFiles() {
       try {
         const response = await fetch(
-          `/api/lessons/${lessonId}/documents`
+          `/api/lessonss/${lessonId}/documents`
         );
 
         const result = await response.json();

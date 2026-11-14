@@ -2,6 +2,7 @@
 "use client";
 
 import { Suspense, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import ProfileMenu from "@/components/ProfileMenu";
 
@@ -417,6 +418,13 @@ function PracticeContent() {
   return (
     <main className="premium-page">
       <nav className="navbar">
+        <div className="nav-links">
+          <Link href="/">Home</Link>
+          <Link href="/lessons">Lessons</Link>
+          <Link href="/progress">Progress</Link>
+          <Link href="/dashboard">Dashboard</Link>
+        </div>
+
         <div className="nav-actions">
           <ProfileMenu />
         </div>

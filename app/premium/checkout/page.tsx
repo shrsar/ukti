@@ -194,7 +194,7 @@ export default function PremiumCheckoutPage() {
       <header className="navbar">
         <nav className="nav-links">
           <a href="/dashboard">Home</a>
-          <a href="/lessons">Lessons</a>
+          <a href="/lessonss">Lessons</a>
           <a href="/premium">Plans</a>
         </nav>
 

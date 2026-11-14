@@ -372,7 +372,7 @@ export default function AdminPracticePage() {
         <button
           className="account-secondary-button"
           type="button"
-          onClick={() => router.push("/admin/lessons")}
+          onClick={() => router.push("/admin/lessonss")}
         >
           Back to lessons
         </button>

@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import DOMPurify from "dompurify";
 
@@ -32,7 +32,7 @@ export default function IndividualLessonPage() {
   const lessonId = params.lessonId;
 
   const router = useRouter();
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
 
   const [lesson, setLesson] = useState<Lesson | null>(null);
   const [safeHtml, setSafeHtml] = useState("");
@@ -40,12 +40,13 @@ export default function IndividualLessonPage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
+    let cancelled = false;
+
     async function loadLesson() {
       try {
         setLoading(true);
         setError("");
 
-        // Check login
         const {
           data: { user },
           error: authError,
@@ -56,22 +57,23 @@ export default function IndividualLessonPage() {
           return;
         }
 
-        // Fetch published lesson
-        const { data: lessonData, error: lessonError } = await supabase
-          .from("lessons")
-          .select(
-            "id, language, title, description, lesson_number, access_tier, status, content"
-          )
-          .eq("id", lessonId)
-          .eq("status", "published")
-          .maybeSingle();
+        const { data: lessonData, error: lessonError } =
+          await supabase
+            .from("lessons")
+            .select(
+              "id, language, title, description, lesson_number, access_tier, status, content"
+            )
+            .eq("id", lessonId)
+            .eq("status", "published")
+            .maybeSingle();
 
         if (lessonError || !lessonData) {
-          setError("Lesson not found or not published.");
+          if (!cancelled) {
+            setError("Lesson not found or not published.");
+          }
           return;
         }
 
-        // Check student's access to this language
         const { data: languageAccess, error: accessError } =
           await supabase
             .from("user_languages")
@@ -81,11 +83,12 @@ export default function IndividualLessonPage() {
             .maybeSingle();
 
         if (accessError || !languageAccess) {
-          setError("You do not have access to this language.");
+          if (!cancelled) {
+            setError("You do not have access to this language.");
+          }
           return;
         }
 
-        // Check Premium access
         if (
           lessonData.access_tier === "premium" &&
           !(
@@ -93,33 +96,58 @@ export default function IndividualLessonPage() {
             languageAccess.subscription_status === "active"
           )
         ) {
-          setError("This lesson requires an active Premium plan.");
+          if (!cancelled) {
+            setError(
+              "This lesson requires an active Premium plan."
+            );
+          }
           return;
         }
 
         const loadedLesson = lessonData as Lesson;
 
-        setLesson(loadedLesson);
-
-        // Sanitize admin-created rich text before displaying it
-        const html = loadedLesson.content?.html || "";
-        setSafeHtml(DOMPurify.sanitize(html));
+        if (!cancelled) {
+          setLesson(loadedLesson);
+          setSafeHtml(
+            DOMPurify.sanitize(loadedLesson.content?.html || "")
+          );
+        }
       } catch (err) {
         console.error("Lesson loading error:", err);
-        setError("Something went wrong while loading the lesson.");
+
+        if (!cancelled) {
+          setError(
+            "Something went wrong while loading the lesson."
+          );
+        }
       } finally {
-        setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     }
 
     if (lessonId) {
-      loadLesson();
+      void loadLesson();
     }
+
+    return () => {
+      cancelled = true;
+    };
   }, [lessonId, router, supabase]);
 
   return (
     <main className="premium-page">
       <nav className="navbar">
+        <div className="nav-links">
+          <button
+            type="button"
+            onClick={() => router.push("/lessons")}
+          >
+            Lessons
+          </button>
+        </div>
+
         <div className="nav-actions">
           <ProfileMenu />
         </div>
@@ -136,9 +164,9 @@ export default function IndividualLessonPage() {
 
               <button
                 type="button"
-                onClick={() => router.back()}
+                onClick={() => router.push("/lessons")}
               >
-                Go back
+                Back to lessons
               </button>
 
               {error.includes("Premium") && (
@@ -152,7 +180,9 @@ export default function IndividualLessonPage() {
             </>
           ) : lesson ? (
             <>
-              <p>{lesson.language} · Lesson {lesson.lesson_number}</p>
+              <p>
+                {lesson.language} · Lesson {lesson.lesson_number}
+              </p>
 
               <h1>{lesson.title}</h1>
 
@@ -168,28 +198,32 @@ export default function IndividualLessonPage() {
                     }}
                   />
                 ) : (
-                  lesson.content?.sections?.map((section, index) => (
-                    <section key={index}>
-                      {section.heading && (
-                        <h2>{section.heading}</h2>
-                      )}
-
-                      {section.explanation && (
-                        <p style={{ whiteSpace: "pre-wrap" }}>
-                          {section.explanation}
-                        </p>
-                      )}
-
-                      {section.examples &&
-                        section.examples.length > 0 && (
-                          <ul>
-                            {section.examples.map((example, i) => (
-                              <li key={i}>{example}</li>
-                            ))}
-                          </ul>
+                  lesson.content?.sections?.map(
+                    (section, index) => (
+                      <section key={index}>
+                        {section.heading && (
+                          <h2>{section.heading}</h2>
                         )}
-                    </section>
-                  ))
+
+                        {section.explanation && (
+                          <p style={{ whiteSpace: "pre-wrap" }}>
+                            {section.explanation}
+                          </p>
+                        )}
+
+                        {section.examples &&
+                          section.examples.length > 0 && (
+                            <ul>
+                              {section.examples.map(
+                                (example, i) => (
+                                  <li key={i}>{example}</li>
+                                )
+                              )}
+                            </ul>
+                          )}
+                      </section>
+                    )
+                  )
                 )}
               </div>
 
@@ -197,7 +231,7 @@ export default function IndividualLessonPage() {
 
               <button
                 type="button"
-                onClick={() => router.back()}
+                onClick={() => router.push("/lessons")}
               >
                 Back to lessons
               </button>

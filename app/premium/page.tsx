@@ -213,7 +213,7 @@ export default function PremiumPage() {
         return;
       }
 
-      router.push("/lesson");
+      router.push("/lessons");
     } catch (error) {
       console.error("Continue error:", error);
       setMessage("Something went wrong. Please try again.");
@@ -247,7 +247,7 @@ export default function PremiumPage() {
       <header className="navbar">
         <nav className="nav-links">
           <Link href="/">Home</Link>
-          <Link href="/lesson">Lessons</Link>
+          <Link href="/lessons">Lessons</Link>
           <Link href="/practice">Practice</Link>
           <Link href="/progress">Progress</Link>
         </nav>

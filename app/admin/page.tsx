@@ -6,13 +6,13 @@ const adminSections = [
   {
     title: "Manage Lessons",
     description: "Create, edit, publish and manage language lessons.",
-    href: "/admin/lessons",
+    href: "/admin/lessonss",
     icon: "📚",
   },
   {
     title: "Import Lessons",
     description: "Upload lesson documents and import learning content.",
-    href: "/admin/lessons/import",
+    href: "/admin/lessonss/import",
     icon: "📤",
   },
   {
