@@ -24,13 +24,12 @@ const PREMIUM_FEATURES = [
   "Everything included in Basic",
   "No Ads",
   "Unlimited practice",
-  "Detailed Lessons",
 ];
 
 const BASIC_FEATURES = [
   "Ads",
   "Limited practice",
-  "Basic Lessons",
+  "All Lessons",
   "Progress tracking",
 ];
 
