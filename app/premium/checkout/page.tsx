@@ -77,6 +77,18 @@ export default function PremiumCheckoutPage() {
     setMessage("");
 
     try {
+      // Get the exact languages passed from the selection page
+      const params = new URLSearchParams(window.location.search);
+      const languages = params.getAll("language");
+
+      if (languages.length === 0) {
+        setMessage(
+          "No Premium languages selected. Please return to Plans."
+        );
+        setLoading(false);
+        return;
+      }
+
       const scriptLoaded = await loadRazorpayScript();
 
       if (!scriptLoaded || !window.Razorpay) {
@@ -85,11 +97,17 @@ export default function PremiumCheckoutPage() {
         return;
       }
 
-      // Create payment order on the server
+      // Create payment order on the server using selected languages
       const orderResponse = await fetch(
         "/api/razorpay/create-order",
         {
           method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            languages,
+          }),
         }
       );
 

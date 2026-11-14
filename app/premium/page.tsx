@@ -1,7 +1,10 @@
 
 "use client";
 
-import { PREMIUM_PRICE } from "@/lib/pricing";
+import {
+  PREMIUM_PRICE,
+  PREMIUM_AMOUNT_PAISE,
+} from "@/lib/pricing";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -113,13 +116,35 @@ export default function PremiumPage() {
     setMessage("");
   }
 
-  // Select a plan by clicking its entire card
+  // Select a plan
   function selectPlan(plan: Plan) {
     if (saving) return;
 
     setSelectedPlan(plan);
     setMessage("");
   }
+
+  // Identify selected languages that still require payment
+  const premiumLanguagesToPay =
+    selectedPlan === "premium"
+      ? selectedLanguages.filter((language) => {
+          const existing = savedChoices.find(
+            (item) => item.language === language
+          );
+
+          // Do not charge again for already-active Premium languages
+          return !(
+            existing?.selected_plan === "premium" &&
+            existing.subscription_status === "active"
+          );
+        })
+      : [];
+
+  // Calculate using numeric paise
+  const estimatedTotalPaise =
+    premiumLanguagesToPay.length * PREMIUM_AMOUNT_PAISE;
+
+  const estimatedTotal = estimatedTotalPaise / 100;
 
   // Save selections and continue
   async function continueWithPlan() {
@@ -146,6 +171,7 @@ export default function PremiumPage() {
 
       const userId = authData.user.id;
 
+      // Save currently selected languages
       const records = selectedLanguages.map((language) => {
         const existing = savedChoices.find(
           (item) => item.language === language
@@ -180,15 +206,32 @@ export default function PremiumPage() {
         return;
       }
 
-      // Remove unchecked Basic selections.
-      // Existing Premium records are retained until cancellation is implemented.
-      const removableLanguages = savedChoices
+      // Remove unchecked Basic languages
+      const removableBasicLanguages = savedChoices
         .filter(
           (item) =>
             !selectedLanguages.includes(item.language) &&
             item.selected_plan === "basic"
         )
         .map((item) => item.language);
+
+      // Remove unchecked unpaid Premium languages
+      // Preserve already-active Premium languages
+      const removablePendingPremiumLanguages = savedChoices
+        .filter(
+          (item) =>
+            !selectedLanguages.includes(item.language) &&
+            item.selected_plan === "premium" &&
+            item.subscription_status === "pending_payment"
+        )
+        .map((item) => item.language);
+
+      const removableLanguages = [
+        ...new Set([
+          ...removableBasicLanguages,
+          ...removablePendingPremiumLanguages,
+        ]),
+      ];
 
       if (removableLanguages.length > 0) {
         const { error: deleteError } = await supabase
@@ -199,17 +242,29 @@ export default function PremiumPage() {
 
         if (deleteError) {
           console.error("Language removal error:", deleteError.message);
+
           setMessage(
-            "Your choices were saved, but some previous Basic selections could not be removed."
+            "Your choices were saved, but some unchecked languages could not be removed. Please try again."
           );
           return;
         }
       }
 
-      // Premium proceeds to checkout.
-      // Basic proceeds directly to lessons.
+      // Continue to payment only when payment is due
       if (selectedPlan === "premium") {
-        router.push("/premium/checkout");
+        if (premiumLanguagesToPay.length > 0) {
+          // Pass only the languages requiring payment
+          const params = new URLSearchParams();
+
+          premiumLanguagesToPay.forEach((language) => {
+            params.append("language", language);
+          });
+
+          router.push(`/premium/checkout?${params.toString()}`);
+          return;
+        }
+
+        router.push("/dashboard");
         return;
       }
 
@@ -243,7 +298,6 @@ export default function PremiumPage() {
 
   return (
     <main className="premium-page">
-      {/* NAVBAR */}
       <header className="navbar">
         <nav className="nav-links">
           <Link href="/">Home</Link>
@@ -258,15 +312,14 @@ export default function PremiumPage() {
       </header>
 
       <section className="premium-container">
-        {/* PAGE HEADING */}
         <div className="premium-heading">
           <p className="dashboard-eyebrow">Ukti MEMBERSHIP</p>
 
           <h1>Build your language journey</h1>
 
           <p>
-            Choose all the languages you want to learn,
-            then select one plan for your entire learning journey.
+            Choose the languages you want to learn,
+            then select Basic or Premium for your selected languages.
           </p>
         </div>
 
@@ -275,7 +328,7 @@ export default function PremiumPage() {
           <h2>1. Choose your languages</h2>
 
           <p className="premium-helper">
-            Select as many languages as you want.
+            Select only the languages you want to include in this plan.
           </p>
 
           <div className="language-checkbox-grid">
@@ -305,8 +358,7 @@ export default function PremiumPage() {
           <h2>2. Choose your plan</h2>
 
           <p className="premium-helper">
-            Your selected plan applies to every language above.
-            Click a card to select it.
+            Your selected plan applies to the languages checked above.
           </p>
 
           <div className="plan-comparison-grid">
@@ -373,7 +425,7 @@ export default function PremiumPage() {
 
               <p className="subscription-price">
                 {PREMIUM_PRICE}
-                <span>/ month</span>
+                <span>/ language / month</span>
               </p>
 
               <p className="subscription-description">
@@ -389,7 +441,7 @@ export default function PremiumPage() {
           </div>
         </section>
 
-        {/* CONTINUE */}
+        {/* PAYMENT SUMMARY */}
         <div className="premium-continue-area">
           <div>
             <p>
@@ -397,11 +449,22 @@ export default function PremiumPage() {
               {selectedLanguages.length === 1 ? "" : "s"} selected
             </p>
 
-            <span>
-              {selectedPlan === "premium"
-                ? "Premium plan selected"
-                : "Basic plan selected"}
-            </span>
+            {selectedPlan === "premium" ? (
+              <>
+                <span>
+                  {premiumLanguagesToPay.length} new Premium language
+                  {premiumLanguagesToPay.length === 1 ? "" : "s"} to pay for
+                </span>
+
+                <p>
+                  Estimated total: {premiumLanguagesToPay.length} ×{" "}
+                  {PREMIUM_PRICE} = ₹
+                  {estimatedTotal.toFixed(2)}
+                </p>
+              </>
+            ) : (
+              <span>Basic plan selected — Free</span>
+            )}
           </div>
 
           <button
@@ -413,7 +476,9 @@ export default function PremiumPage() {
             {saving
               ? "Saving..."
               : selectedPlan === "premium"
-                ? "Continue with Premium"
+                ? premiumLanguagesToPay.length > 0
+                  ? `Continue to payment (₹${estimatedTotal.toFixed(2)})`
+                  : "Continue to dashboard"
                 : "Continue with Basic"}
 
             <span aria-hidden="true"> →</span>

@@ -6,7 +6,7 @@ import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import Razorpay from "razorpay";
 import { PREMIUM_AMOUNT_PAISE } from "@/lib/pricing";
 
-export async function POST() {
+export async function POST(request: Request) {
   try {
     // Authenticate the user
     const cookieStore = await cookies();
@@ -40,6 +40,29 @@ export async function POST() {
       );
     }
 
+    // Read the exact languages selected for this purchase
+    const body = await request.json();
+    const requestedLanguages = body?.languages;
+
+    if (
+      !Array.isArray(requestedLanguages) ||
+      requestedLanguages.length === 0 ||
+      !requestedLanguages.every(
+        (language: unknown) =>
+          typeof language === "string" && language.trim().length > 0
+      )
+    ) {
+      return NextResponse.json(
+        { error: "Please select at least one Premium language." },
+        { status: 400 }
+      );
+    }
+
+    // Remove duplicates
+    const languages = [...new Set(
+      requestedLanguages.map((language: string) => language.trim())
+    )];
+
     // Create server-side Supabase admin client
     const adminDb = createSupabaseClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -52,7 +75,7 @@ export async function POST() {
       }
     );
 
-    // Find languages awaiting Premium payment
+    // Retrieve this user's pending Premium selections
     const { data: pendingLanguages, error: languageError } =
       await adminDb
         .from("user_languages")
@@ -70,24 +93,34 @@ export async function POST() {
       );
     }
 
-    // Get unique selected Premium languages
-    const languages = [
-      ...new Set(
-        (pendingLanguages || []).map((item) => item.language)
-      ),
-    ];
+    const pendingLanguageSet = new Set(
+      (pendingLanguages || []).map((item) => item.language)
+    );
 
-    if (languages.length === 0) {
+    // Reject any language that is not pending Premium for this user
+    const invalidLanguages = languages.filter(
+      (language) => !pendingLanguageSet.has(language)
+    );
+
+    if (invalidLanguages.length > 0) {
       return NextResponse.json(
         {
-          error: "There are no pending Premium selections to pay for.",
+          error:
+            "One or more selected languages are not awaiting Premium payment. Please return to Plans and try again.",
         },
         { status: 400 }
       );
     }
 
-    // Calculate total: number of languages × Premium price
+    // Calculate total using only the requested, validated languages
     const totalAmount = languages.length * PREMIUM_AMOUNT_PAISE;
+
+    if (!Number.isSafeInteger(totalAmount) || totalAmount <= 0) {
+      return NextResponse.json(
+        { error: "Invalid payment amount." },
+        { status: 400 }
+      );
+    }
 
     // Create Razorpay order
     const razorpay = new Razorpay({
@@ -109,7 +142,7 @@ export async function POST() {
       },
     });
 
-    // Save order in Supabase
+    // Save the exact language snapshot with the order
     const { error: saveError } = await adminDb
       .from("payment_orders")
       .insert({
@@ -135,6 +168,7 @@ export async function POST() {
       amount: totalAmount,
       currency: "INR",
       key_id: process.env.RAZORPAY_KEY_ID,
+      languages,
     });
   } catch (error) {
     console.error("Razorpay order error:", error);
