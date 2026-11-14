@@ -492,7 +492,7 @@ export default function PremiumPage() {
         )}
 
         <p className="premium-footer">
-          Your language selections and plan are saved to your Ukti account.
+          Your language selections and plan are saved to your Ukti account. No refund possible under any circumstances
         </p>
       </section>
     </main>
