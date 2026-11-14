@@ -40,12 +40,17 @@ export default function PremiumCheckoutPage() {
       );
 
       if (existingScript) {
-        existingScript.addEventListener("load", () => resolve(true), {
-          once: true,
-        });
-        existingScript.addEventListener("error", () => resolve(false), {
-          once: true,
-        });
+        existingScript.addEventListener(
+          "load",
+          () => resolve(!!window.Razorpay),
+          { once: true }
+        );
+
+        existingScript.addEventListener(
+          "error",
+          () => resolve(false),
+          { once: true }
+        );
 
         if (window.Razorpay) resolve(true);
         return;
@@ -53,10 +58,12 @@ export default function PremiumCheckoutPage() {
 
       const script = document.createElement("script");
 
-      script.src = "https://checkout.razorpay.com/v1/checkout.js";
+      script.src =
+        "https://checkout.razorpay.com/v1/checkout.js";
+
       script.async = true;
 
-      script.onload = () => resolve(true);
+      script.onload = () => resolve(!!window.Razorpay);
       script.onerror = () => resolve(false);
 
       document.body.appendChild(script);
@@ -78,9 +85,12 @@ export default function PremiumCheckoutPage() {
         return;
       }
 
+      // Create payment order on the server
       const orderResponse = await fetch(
         "/api/razorpay/create-order",
-        { method: "POST" }
+        {
+          method: "POST",
+        }
       );
 
       const orderData = await orderResponse.json();
@@ -105,17 +115,20 @@ export default function PremiumCheckoutPage() {
         amount: orderData.amount,
         currency: orderData.currency,
         name: "Ukti",
-        description: `Premium subscription - ${PREMIUM_BILLING_PERIOD}`,
+
+        description: `Premium - ${PREMIUM_PRICE} per language / ${PREMIUM_BILLING_PERIOD}`,
+
         order_id: orderData.order_id,
 
+        // Show Cards and UPI; hide Netbanking
         config: {
           display: {
             blocks: {
               Ukti_methods: {
-                name: "Pay using UPI or Net Banking",
+                name: "Pay using Cards or UPI",
                 instruments: [
+                  { method: "card" },
                   { method: "upi" },
-                  { method: "netbanking" },
                 ],
               },
             },
@@ -152,20 +165,27 @@ export default function PremiumCheckoutPage() {
                 verifyData.error ||
                   "Payment verification is pending. Please contact support if money was deducted."
               );
+
               setLoading(false);
               return;
             }
 
-            setMessage("Payment successful. Premium is activated.");
+            setMessage(
+              "Payment successful. Your Premium languages are activated."
+            );
 
             router.replace("/dashboard");
             router.refresh();
           } catch (error) {
-            console.error("Payment verification error:", error);
+            console.error(
+              "Payment verification error:",
+              error
+            );
 
             setMessage(
               "Payment was submitted, but verification is pending. Please contact support if money was deducted."
             );
+
             setLoading(false);
           }
         },
@@ -175,6 +195,7 @@ export default function PremiumCheckoutPage() {
             setMessage(
               "Payment window closed. No confirmation received."
             );
+
             setLoading(false);
           },
         },
@@ -184,7 +205,11 @@ export default function PremiumCheckoutPage() {
       checkout.open();
     } catch (error) {
       console.error("Checkout error:", error);
-      setMessage("Unable to start payment. Please try again.");
+
+      setMessage(
+        "Unable to start payment. Please try again."
+      );
+
       setLoading(false);
     }
   }
@@ -194,7 +219,7 @@ export default function PremiumCheckoutPage() {
       <header className="navbar">
         <nav className="nav-links">
           <a href="/dashboard">Home</a>
-          <a href="/lessonss">Lessons</a>
+          <a href="/lessons">Lessons</a>
           <a href="/premium">Plans</a>
         </nav>
 
@@ -205,7 +230,9 @@ export default function PremiumCheckoutPage() {
 
       <section className="premium-container">
         <div className="premium-heading">
-          <p className="dashboard-eyebrow">Ukti PREMIUM</p>
+          <p className="dashboard-eyebrow">
+            Ukti PREMIUM
+          </p>
 
           <h1>Complete your payment</h1>
 
@@ -219,12 +246,15 @@ export default function PremiumCheckoutPage() {
             <span>Premium subscription</span>
 
             <strong>
-              {PREMIUM_PRICE} / {PREMIUM_BILLING_PERIOD}
+              {PREMIUM_PRICE} / language /{" "}
+              {PREMIUM_BILLING_PERIOD}
             </strong>
           </div>
 
           <p className="checkout-payment-note">
-            Fixed payment of {PREMIUM_PRICE} for one month.
+            Premium is charged separately for each selected
+            language. Your total payment is calculated as:
+            number of selected languages × {PREMIUM_PRICE}.
             No automatic deductions or recurring charges.
           </p>
 
@@ -232,13 +262,18 @@ export default function PremiumCheckoutPage() {
             <h3>Secure payment</h3>
 
             <p>
-              Pay exactly {PREMIUM_PRICE} using UPI or Net Banking
-              through Razorpay.
+              Pay {PREMIUM_PRICE} per language using Debit/Credit
+              Cards or UPI through Razorpay.
             </p>
 
             <p>
-              The amount is set by Ukti's server and cannot be
-              changed in the checkout.
+              Your total payment depends on the number of
+              Premium languages selected.
+            </p>
+
+            <p>
+              The amount is calculated by Ukti&apos;s server
+              and cannot be changed in the checkout.
             </p>
           </div>
 
@@ -248,11 +283,16 @@ export default function PremiumCheckoutPage() {
             onClick={startPayment}
             disabled={loading}
           >
-            {loading ? "Please wait..." : `Pay ${PREMIUM_PRICE}`}
+            {loading
+              ? "Please wait..."
+              : "Continue to payment"}
           </button>
 
           {message && (
-            <p className="premium-save-message" role="status">
+            <p
+              className="premium-save-message"
+              role="status"
+            >
               {message}
             </p>
           )}
