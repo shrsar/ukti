@@ -42,7 +42,7 @@ export default function ImportLessonPage() {
         formData.append("files", file);
       });
 
-      const response = await fetch("/api/admin/lessonss/upload", {
+      const response = await fetch("/api/admin/lessons/upload", {
         method: "POST",
         body: formData,
       });
@@ -55,7 +55,7 @@ export default function ImportLessonPage() {
 
       setMessage("Lesson uploaded successfully.");
 
-      router.push("/admin/lessonss");
+      router.push("/admin/lessons");
       router.refresh();
     } catch (error) {
       setMessage(
@@ -166,7 +166,7 @@ export default function ImportLessonPage() {
 
           <button
             type="button"
-            onClick={() => router.push("/admin/lessonss")}
+            onClick={() => router.push("/admin/lessons")}
           >
             Back to lessons
           </button>
