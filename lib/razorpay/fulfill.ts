@@ -2,7 +2,6 @@
 import "server-only";
 
 import { createClient } from "@supabase/supabase-js";
-
 import { PREMIUM_AMOUNT_PAISE } from "@/lib/pricing";
 
 const adminDb = createClient(
@@ -29,14 +28,14 @@ export async function fulfillRazorpayOrder(
 ) {
   if (
     payment.status !== "captured" ||
-    payment.amount !== 5000 ||
     payment.currency !== "INR" ||
     !payment.order_id ||
     !payment.id
   ) {
-    throw new Error("Payment is not a valid captured ₹50 payment.");
+    throw new Error("Payment is not a valid captured payment.");
   }
 
+  // Retrieve the saved order
   const { data: order, error: orderError } = await adminDb
     .from("payment_orders")
     .select("*")
@@ -47,10 +46,36 @@ export async function fulfillRazorpayOrder(
     throw new Error("Payment order was not found.");
   }
 
-  if (order.amount !== 5000 || order.currency !== "INR") {
-    throw new Error("Stored order amount is invalid.");
+  // Validate the languages associated with this order
+  const rawLanguages = order.languages;
+
+  if (
+    !Array.isArray(rawLanguages) ||
+    rawLanguages.length === 0 ||
+    !rawLanguages.every(
+      (language) =>
+        typeof language === "string" && language.trim().length > 0
+    )
+  ) {
+    throw new Error("No valid languages are associated with this payment order.");
   }
 
+  const languages = [...new Set(rawLanguages)];
+
+  // Calculate the expected payment for all selected languages
+  const expectedAmount =
+    languages.length * PREMIUM_AMOUNT_PAISE;
+
+  // Validate both the saved order and the captured payment
+  if (
+    Number(order.amount) !== expectedAmount ||
+    order.currency !== "INR" ||
+    payment.amount !== expectedAmount
+  ) {
+    throw new Error("Payment amount does not match the Premium language selection.");
+  }
+
+  // Prevent another payment from being attached to this order
   if (
     order.razorpay_payment_id &&
     order.razorpay_payment_id !== payment.id
@@ -58,13 +83,7 @@ export async function fulfillRazorpayOrder(
     throw new Error("A different payment is already attached to this order.");
   }
 
-  const languages = order.languages as string[];
-
-  if (!Array.isArray(languages) || languages.length === 0) {
-    throw new Error("No languages are associated with this payment order.");
-  }
-
-  // Mark the payment as captured.
+  // Mark the payment as captured
   const { error: updateOrderError } = await adminDb
     .from("payment_orders")
     .update({
@@ -78,7 +97,7 @@ export async function fulfillRazorpayOrder(
     throw new Error(updateOrderError.message);
   }
 
-  // Activate only the languages saved in this specific order.
+  // Activate all Premium languages included in this order
   const { error: activateError } = await adminDb
     .from("user_languages")
     .update({
@@ -94,5 +113,9 @@ export async function fulfillRazorpayOrder(
     throw new Error(activateError.message);
   }
 
-  return { success: true };
+  return {
+    success: true,
+    languages,
+    amount: expectedAmount,
+  };
 }

@@ -65,6 +65,7 @@ export async function POST(request: Request) {
       }
     );
 
+    // Find the order belonging to this user
     const { data: savedOrder, error: orderError } = await adminDb
       .from("payment_orders")
       .select("*")
@@ -79,6 +80,39 @@ export async function POST(request: Request) {
       );
     }
 
+    // Get unique languages stored with this payment order
+    const languages = Array.isArray(savedOrder.languages)
+      ? [...new Set(savedOrder.languages)]
+      : [];
+
+    if (languages.length === 0) {
+      return NextResponse.json(
+        { error: "No languages are associated with this payment order." },
+        { status: 400 }
+      );
+    }
+
+    // Calculate the expected amount from the saved language selection
+    const expectedAmount = languages.length * PREMIUM_AMOUNT_PAISE;
+
+    // Ensure the saved order amount matches the expected amount
+    if (
+      Number(savedOrder.amount) !== expectedAmount ||
+      savedOrder.currency !== "INR"
+    ) {
+      console.error("Saved payment order amount mismatch:", {
+        savedAmount: savedOrder.amount,
+        expectedAmount,
+        languageCount: languages.length,
+      });
+
+      return NextResponse.json(
+        { error: "The payment order amount does not match your Premium selection." },
+        { status: 400 }
+      );
+    }
+
+    // Verify Razorpay payment signature
     const expectedSignature = createHmac(
       "sha256",
       process.env.RAZORPAY_KEY_SECRET!
@@ -106,6 +140,7 @@ export async function POST(request: Request) {
       );
     }
 
+    // Fetch payment directly from Razorpay
     const razorpay = new Razorpay({
       key_id: process.env.RAZORPAY_KEY_ID!,
       key_secret: process.env.RAZORPAY_KEY_SECRET!,
@@ -113,18 +148,24 @@ export async function POST(request: Request) {
 
     const payment = await razorpay.payments.fetch(paymentId);
 
+    // Verify payment against the full multi-language amount
     if (
       payment.order_id !== orderId ||
-      payment.amount !== PREMIUM_AMOUNT_PAISE ||
+      payment.amount !== expectedAmount ||
       payment.currency !== "INR" ||
       payment.status !== "captured"
     ) {
       return NextResponse.json(
-        { error: "Payment has not been captured for ₹50." },
+        {
+          error: `Payment has not been captured for the expected amount of ₹${(
+            expectedAmount / 100
+          ).toFixed(2)}.`,
+        },
         { status: 400 }
       );
     }
 
+    // Activate all languages associated with this payment order
     await fulfillRazorpayOrder({
       id: payment.id,
       order_id: String(payment.order_id),
@@ -133,12 +174,19 @@ export async function POST(request: Request) {
       status: payment.status,
     });
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({
+      success: true,
+      languages,
+      amount: expectedAmount,
+    });
   } catch (error) {
     console.error("Payment verification error:", error);
 
     return NextResponse.json(
-      { error: "Unable to verify payment. Please contact support if money was deducted." },
+      {
+        error:
+          "Unable to verify payment. Please contact support if money was deducted.",
+      },
       { status: 500 }
     );
   }

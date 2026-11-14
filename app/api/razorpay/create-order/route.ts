@@ -70,6 +70,7 @@ export async function POST() {
       );
     }
 
+    // Get unique selected Premium languages
     const languages = [
       ...new Set(
         (pendingLanguages || []).map((item) => item.language)
@@ -85,6 +86,9 @@ export async function POST() {
       );
     }
 
+    // Calculate total: number of languages × Premium price
+    const totalAmount = languages.length * PREMIUM_AMOUNT_PAISE;
+
     // Create Razorpay order
     const razorpay = new Razorpay({
       key_id: process.env.RAZORPAY_KEY_ID!,
@@ -92,13 +96,16 @@ export async function POST() {
     });
 
     const order = await razorpay.orders.create({
-      amount: PREMIUM_AMOUNT_PAISE,
+      amount: totalAmount,
       currency: "INR",
       receipt: `Ukti_${Date.now()}`,
       partial_payment: false,
       notes: {
         user_id: user.id,
         product: "Ukti Premium - 1 month",
+        languages: languages.join(", "),
+        language_count: String(languages.length),
+        price_per_language_paise: String(PREMIUM_AMOUNT_PAISE),
       },
     });
 
@@ -108,7 +115,7 @@ export async function POST() {
       .insert({
         user_id: user.id,
         razorpay_order_id: order.id,
-        amount: PREMIUM_AMOUNT_PAISE,
+        amount: totalAmount,
         currency: "INR",
         status: "created",
         languages,
@@ -125,7 +132,7 @@ export async function POST() {
 
     return NextResponse.json({
       order_id: order.id,
-      amount: PREMIUM_AMOUNT_PAISE,
+      amount: totalAmount,
       currency: "INR",
       key_id: process.env.RAZORPAY_KEY_ID,
     });
