@@ -1,5 +1,7 @@
+
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
+import Script from "next/script";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -29,6 +31,16 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
+      <head>
+        <Script
+          id="google-adsense"
+          async
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5155708391954851"
+          crossOrigin="anonymous"
+          strategy="beforeInteractive"
+        />
+      </head>
+
       <body className="min-h-full flex flex-col">
         {children}
       </body>
