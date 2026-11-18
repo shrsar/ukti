@@ -57,7 +57,7 @@ export default function AdminDashboard() {
               fontSize: "12px",
             }}
           >
-            UKTI ADMINISTRATION
+            KAKHAGAGHA ADMINISTRATION
           </p>
 
           <h1
@@ -70,7 +70,7 @@ export default function AdminDashboard() {
           </h1>
 
           <p style={{ color: "#777", lineHeight: 1.7 }}>
-            Manage your Ukti platform from one place.
+            Manage your KaKhaGaGha platform from one place.
             Select an administrative section below.
           </p>
         </div>

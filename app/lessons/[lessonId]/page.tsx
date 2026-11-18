@@ -6,6 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import DOMPurify from "dompurify";
 
 import { createClient } from "@/lib/supabase/client";
+import { markCompleted, isCompleted } from "@/lib/progress";
 import LessonMedia from "@/components/LessonMedia";
 import ProfileMenu from "@/components/ProfileMenu";
 
@@ -36,9 +37,19 @@ export default function IndividualLessonPage() {
 
   const [lesson, setLesson] = useState<Lesson | null>(null);
   const [safeHtml, setSafeHtml] = useState("");
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  const [currentPlan, setCurrentPlan] = useState<"basic" | "premium">(
+    "basic"
+  );
+
+  const [completed, setCompleted] = useState(false);
+  const [savingCompletion, setSavingCompletion] = useState(false);
+  const [completionError, setCompletionError] = useState("");
+
+  // Load lesson and verify access
   useEffect(() => {
     let cancelled = false;
 
@@ -46,78 +57,116 @@ export default function IndividualLessonPage() {
       try {
         setLoading(true);
         setError("");
+        setCompletionError("");
 
         const {
           data: { user },
           error: authError,
         } = await supabase.auth.getUser();
 
-        if (authError || !user) {
+        if (authError) {
+          throw authError;
+        }
+
+        if (!user) {
           router.replace("/login");
           return;
         }
 
-        const { data: lessonData, error: lessonError } =
-          await supabase
-            .from("lessons")
-            .select(
-              "id, language, title, description, lesson_number, access_tier, status, content"
-            )
-            .eq("id", lessonId)
-            .eq("status", "published")
-            .maybeSingle();
+        // Fetch the lesson
+        const {
+          data: lessonData,
+          error: lessonError,
+        } = await supabase
+          .from("lessons")
+          .select(
+            "id, language, title, description, lesson_number, access_tier, status, content"
+          )
+          .eq("id", lessonId)
+          .eq("status", "published")
+          .maybeSingle();
 
-        if (lessonError || !lessonData) {
+        if (lessonError) {
+          throw lessonError;
+        }
+
+        if (!lessonData) {
           if (!cancelled) {
             setError("Lesson not found or not published.");
           }
           return;
         }
 
-        const { data: languageAccess, error: accessError } =
-          await supabase
-            .from("user_languages")
-            .select("selected_plan, subscription_status")
-            .eq("user_id", user.id)
-            .eq("language", lessonData.language)
-            .maybeSingle();
+        // Verify language access
+        const {
+          data: languageAccess,
+          error: accessError,
+        } = await supabase
+          .from("user_languages")
+          .select("selected_plan, subscription_status")
+          .eq("user_id", user.id)
+          .eq("language", lessonData.language)
+          .maybeSingle();
 
-        if (accessError || !languageAccess) {
+        if (accessError) {
+          throw accessError;
+        }
+
+        if (!languageAccess) {
           if (!cancelled) {
             setError("You do not have access to this language.");
           }
           return;
         }
 
+        const isPremiumActive =
+          languageAccess.selected_plan === "premium" &&
+          languageAccess.subscription_status === "active";
+
+        // Premium lesson access
         if (
           lessonData.access_tier === "premium" &&
-          !(
-            languageAccess.selected_plan === "premium" &&
-            languageAccess.subscription_status === "active"
-          )
+          !isPremiumActive
         ) {
           if (!cancelled) {
-            setError(
-              "This lesson requires an active Premium plan."
-            );
+            setError("This lesson requires an active Premium plan.");
           }
           return;
         }
 
         const loadedLesson = lessonData as Lesson;
 
-        if (!cancelled) {
-          setLesson(loadedLesson);
-          setSafeHtml(
-            DOMPurify.sanitize(loadedLesson.content?.html || "")
-          );
-        }
+        if (cancelled) return;
+
+        setLesson(loadedLesson);
+
+        const activePlan: "basic" | "premium" = isPremiumActive
+          ? "premium"
+          : "basic";
+
+        setCurrentPlan(activePlan);
+
+        // Sanitize HTML lesson content
+        setSafeHtml(
+          DOMPurify.sanitize(loadedLesson.content?.html || "")
+        );
+
+        // Restore completion status from local progress storage
+        setCompleted(
+          isCompleted(
+            loadedLesson.language,
+            "lesson",
+            String(loadedLesson.id)
+          )
+        );
       } catch (err) {
         console.error("Lesson loading error:", err);
 
         if (!cancelled) {
           setError(
-            "Something went wrong while loading the lesson."
+            err instanceof Error
+              ? err.message
+              : "Something went wrong while loading the lesson."
           );
         }
       } finally {
@@ -135,6 +184,32 @@ export default function IndividualLessonPage() {
       cancelled = true;
     };
   }, [lessonId, router, supabase]);
+
+  // Mark lesson as completed
+  function handleMarkCompleted() {
+    if (!lesson || savingCompletion || completed) return;
+
+    try {
+      setSavingCompletion(true);
+      setCompletionError("");
+
+      markCompleted(
+        lesson.language,
+        "lesson",
+        String(lesson.id)
+      );
+
+      setCompleted(true);
+    } catch (err) {
+      console.error("Lesson completion error:", err);
+
+      setCompletionError(
+        "Could not save your progress. Please try again."
+      );
+    } finally {
+      setSavingCompletion(false);
+    }
+  }
 
   return (
     <main className="premium-page">
@@ -190,6 +265,7 @@ export default function IndividualLessonPage() {
                 <p>{lesson.description}</p>
               )}
 
+              {/* Lesson content */}
               <div className="lesson-content">
                 {safeHtml ? (
                   <div
@@ -227,7 +303,31 @@ export default function IndividualLessonPage() {
                 )}
               </div>
 
+              {/* Lesson media */}
               <LessonMedia lessonId={lesson.id} />
+
+              {/* Completion tracking */}
+              <div className="lesson-completion">
+                {completed ? (
+                  <p className="lesson-completed-message">
+                    ✓ Lesson completed! Your progress has been saved.
+                  </p>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleMarkCompleted}
+                    disabled={savingCompletion}
+                  >
+                    {savingCompletion
+                      ? "Saving progress..."
+                      : "Mark lesson as completed"}
+                  </button>
+                )}
+
+                {completionError && (
+                  <p role="alert">{completionError}</p>
+                )}
+              </div>
 
               <button
                 type="button"

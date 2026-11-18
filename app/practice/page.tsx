@@ -1,9 +1,18 @@
 
 "use client";
 
-import { Suspense, useEffect, useRef, useState } from "react";
+import {
+  Suspense,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import {
+  markCompleted,
+  isCompleted,
+} from "@/lib/progress";
 import ProfileMenu from "@/components/ProfileMenu";
 
 type WordResult = {
@@ -43,9 +52,8 @@ function PracticeContent() {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const chunksRef = useRef<Blob[]>([]);
-  const recordingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
-    null
-  );
+  const recordingTimeoutRef =
+    useRef<ReturnType<typeof setTimeout> | null>(null);
 
   async function loadQuestions(selectedLanguage: string) {
     if (!selectedLanguage) return;
@@ -60,7 +68,9 @@ function PracticeContent() {
 
     try {
       const response = await fetch(
-        `/api/practice?language=${encodeURIComponent(selectedLanguage)}`,
+        `/api/practice?language=${encodeURIComponent(
+          selectedLanguage
+        )}`,
         { cache: "no-store" }
       );
 
@@ -72,9 +82,27 @@ function PracticeContent() {
         );
       }
 
-      setQuestions(data.questions || []);
+      const loadedQuestions: Question[] = (data.questions || []).map(
+        (question: Question) => {
+          const localCompleted = isCompleted(
+            question.language,
+            "question",
+            String(question.id)
+          );
 
-      if (!data.questions?.length) {
+          return {
+            ...question,
+            completed: localCompleted,
+            progress_status: localCompleted
+              ? "completed"
+              : "in_progress",
+          };
+        }
+      );
+
+      setQuestions(loadedQuestions);
+
+      if (!loadedQuestions.length) {
         setMessage(
           "No published speaking questions are available for this language."
         );
@@ -90,16 +118,32 @@ function PracticeContent() {
     }
   }
 
+  // Load the language provided in the URL initially.
   useEffect(() => {
     if (
       ["English", "Hindi", "Bengali"].includes(initialLanguage)
     ) {
       void loadQuestions(initialLanguage);
     }
-    // Load only the language supplied in the initial URL.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Restore completion status whenever the current question changes.
+  useEffect(() => {
+    const question = questions[index];
+
+    setCompleted(
+      question
+        ? isCompleted(
+            question.language,
+            "question",
+            String(question.id)
+          )
+        : false
+    );
+  }, [questions, index]);
+
+  // Clean up microphone and recorder when leaving the page.
   useEffect(() => {
     return () => {
       if (recordingTimeoutRef.current) {
@@ -120,7 +164,6 @@ function PracticeContent() {
   function clearFeedback() {
     setTranscript("");
     setWordResults([]);
-    setCompleted(false);
     setMessage("");
   }
 
@@ -140,7 +183,10 @@ function PracticeContent() {
   }
 
   function getSupportedMimeType(mimeType: string) {
-    const normalized = mimeType.split(";")[0].trim().toLowerCase();
+    const normalized = mimeType
+      .split(";")[0]
+      .trim()
+      .toLowerCase();
 
     if (normalized === "audio/webm") {
       return { mimeType: "audio/webm", extension: "webm" };
@@ -170,7 +216,12 @@ function PracticeContent() {
   async function startRecording() {
     const currentQuestion = questions[index];
 
-    if (!currentQuestion || completed || submitting || recording) {
+    if (
+      !currentQuestion ||
+      completed ||
+      submitting ||
+      recording
+    ) {
       return;
     }
 
@@ -187,25 +238,36 @@ function PracticeContent() {
     }
 
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: true,
-      });
+      const stream =
+        await navigator.mediaDevices.getUserMedia({
+          audio: true,
+        });
 
       streamRef.current = stream;
       chunksRef.current = [];
 
       let preferredMimeType = "";
 
-      if (MediaRecorder.isTypeSupported("audio/webm;codecs=opus")) {
+      if (
+        MediaRecorder.isTypeSupported(
+          "audio/webm;codecs=opus"
+        )
+      ) {
         preferredMimeType = "audio/webm;codecs=opus";
-      } else if (MediaRecorder.isTypeSupported("audio/webm")) {
+      } else if (
+        MediaRecorder.isTypeSupported("audio/webm")
+      ) {
         preferredMimeType = "audio/webm";
-      } else if (MediaRecorder.isTypeSupported("audio/mp4")) {
+      } else if (
+        MediaRecorder.isTypeSupported("audio/mp4")
+      ) {
         preferredMimeType = "audio/mp4";
       }
 
       const recorder = preferredMimeType
-        ? new MediaRecorder(stream, { mimeType: preferredMimeType })
+        ? new MediaRecorder(stream, {
+            mimeType: preferredMimeType,
+          })
         : new MediaRecorder(stream);
 
       mediaRecorderRef.current = recorder;
@@ -220,6 +282,7 @@ function PracticeContent() {
         setMessage(
           "An error occurred while recording. Please try again."
         );
+
         setRecording(false);
 
         stream.getTracks().forEach((track) => track.stop());
@@ -227,7 +290,9 @@ function PracticeContent() {
       };
 
       recorder.onstop = async () => {
-        const format = getSupportedMimeType(recorder.mimeType);
+        const format = getSupportedMimeType(
+          recorder.mimeType
+        );
 
         const audioBlob = new Blob(chunksRef.current, {
           type: format.mimeType,
@@ -252,7 +317,9 @@ function PracticeContent() {
         if (recorder.state === "recording") {
           recorder.stop();
           setRecording(false);
-          setMessage("Recording limit reached. Processing your audio...");
+          setMessage(
+            "Recording limit reached. Processing your audio..."
+          );
         }
       }, 25000);
     } catch (error) {
@@ -274,7 +341,10 @@ function PracticeContent() {
     setMessage("Processing your recording...");
   }
 
-  async function submitRecording(audioBlob: Blob, extension: string) {
+  async function submitRecording(
+    audioBlob: Blob,
+    extension: string
+  ) {
     const question = questions[index];
 
     if (!question) return;
@@ -290,6 +360,7 @@ function PracticeContent() {
         audioBlob,
         `speaking-recording.${extension}`
       );
+
       formData.append("questionId", question.id);
 
       const response = await fetch("/api/practice", {
@@ -309,12 +380,6 @@ function PracticeContent() {
       setWordResults(data.words || []);
       setCompleted(Boolean(data.completed));
 
-      setMessage(
-        data.completed
-          ? "All words were recognised. Question completed!"
-          : "Some words were not recognised. Please try again."
-      );
-
       setQuestions((previous) =>
         previous.map((item) =>
           item.id === question.id
@@ -328,6 +393,31 @@ function PracticeContent() {
             : item
         )
       );
+
+      // Record completion only when every word is recognized.
+      if (data.completed) {
+        try {
+          markCompleted(
+            question.language,
+            "question",
+            String(question.id)
+          );
+
+          setMessage(
+            "All words were recognised. Question completed! Your progress has been saved."
+          );
+        } catch (error) {
+          console.error("Question progress saving error:", error);
+
+          setMessage(
+            "All words were recognised, but progress could not be saved."
+          );
+        }
+      } else {
+        setMessage(
+          "Some words were not recognised. Please try again."
+        );
+      }
     } catch (error) {
       setMessage(
         error instanceof Error
@@ -369,7 +459,9 @@ function PracticeContent() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || "Unable to skip question.");
+        throw new Error(
+          data.error || "Unable to skip question."
+        );
       }
 
       setQuestions((previous) =>
@@ -412,7 +504,9 @@ function PracticeContent() {
 
   const progressPercent =
     wordResults.length > 0
-      ? Math.round((recognizedCount / wordResults.length) * 100)
+      ? Math.round(
+          (recognizedCount / wordResults.length) * 100
+        )
       : 0;
 
   return (
@@ -439,7 +533,9 @@ function PracticeContent() {
           </p>
 
           <div className="account-field">
-            <label htmlFor="practice-language">Choose language</label>
+            <label htmlFor="practice-language">
+              Choose language
+            </label>
 
             <select
               id="practice-language"
@@ -456,6 +552,7 @@ function PracticeContent() {
                   setQuestions([]);
                   setIndex(0);
                   clearFeedback();
+                  setCompleted(false);
                   setMessage("");
                 }
               }}
@@ -511,7 +608,11 @@ function PracticeContent() {
                   disabled={submitting || completed}
                   onClick={() => void startRecording()}
                 >
-                  {submitting ? "Processing..." : "Start Speaking"}
+                  {completed
+                    ? "Question completed ✓"
+                    : submitting
+                    ? "Processing..."
+                    : "Start Speaking"}
                 </button>
               ) : (
                 <button

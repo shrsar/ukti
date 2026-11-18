@@ -5152,3 +5152,488 @@ input:focus-visible {
   }
 
 }
+
+
+/* =========================================
+   KAKHAGHAGHA - PROGRESS PAGE
+========================================= */
+
+.kg-progress-page {
+  min-height: 100vh;
+  background: var(--cream);
+  color: var(--ink);
+  padding-bottom: 60px;
+}
+
+.kg-progress-page .navbar {
+  width: 100%;
+}
+
+/* Main container */
+
+.kg-progress-container {
+  width: min(1150px, 92%);
+  margin: 0 auto;
+  padding: 45px 0;
+}
+
+/* Header */
+
+.kg-progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 35px;
+}
+
+.kg-progress-eyebrow {
+  color: var(--purple);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+  margin-bottom: 12px;
+}
+
+.kg-progress-header h1 {
+  font-size: clamp(2.2rem, 5vw, 3.5rem);
+  font-family: Georgia, serif;
+  font-weight: 700;
+  margin: 0 0 12px;
+}
+
+.kg-progress-header p:last-child {
+  color: var(--ink);
+  opacity: 0.65;
+  font-size: 1rem;
+}
+
+/* Overview cards */
+
+.kg-progress-overview {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  margin-bottom: 35px;
+}
+
+.kg-progress-card {
+  background: #fff;
+  padding: 27px;
+  border-radius: 22px;
+  border: 1px solid rgba(80, 40, 100, 0.08);
+  box-shadow: 0 8px 28px rgba(40, 20, 60, 0.04);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.kg-progress-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 14px 32px rgba(40, 20, 60, 0.09);
+}
+
+.kg-progress-card-label {
+  display: block;
+  font-size: 0.9rem;
+  color: #777;
+  margin-bottom: 15px;
+}
+
+.kg-progress-card h2 {
+  font-size: 2.6rem;
+  font-weight: 700;
+  margin: 0 0 10px;
+}
+
+.kg-progress-card p {
+  color: #777;
+  font-size: 0.85rem;
+}
+
+.kg-progress-main-card {
+  background: linear-gradient(135deg, var(--purple), var(--purple-dark));
+  color: white;
+}
+
+.kg-progress-main-card .kg-progress-card-label,
+.kg-progress-main-card p {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+/* Sections */
+
+.kg-progress-section {
+  background: #fff;
+  padding: 30px;
+  border-radius: 24px;
+  margin-bottom: 25px;
+  border: 1px solid rgba(80, 40, 100, 0.06);
+  box-shadow: 0 8px 28px rgba(40, 20, 60, 0.035);
+}
+
+.kg-progress-section > h2 {
+  font-size: 1.4rem;
+  font-weight: 700;
+  margin-bottom: 25px;
+}
+
+/* Plan grid */
+
+.kg-progress-plan-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 22px;
+}
+
+.kg-progress-plan-card {
+  padding: 25px;
+  border: 1px solid #eee8f5;
+  border-radius: 20px;
+  background: #fcfbfd;
+}
+
+.kg-progress-plan-heading,
+.kg-progress-language-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.kg-progress-plan-heading h3,
+.kg-progress-language-heading h3 {
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.kg-progress-plan-tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #eee8f5;
+  color: var(--purple-dark);
+  padding: 7px 12px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.kg-progress-plan-tag.premium {
+  background: #fff0d6;
+  color: #956719;
+}
+
+.kg-progress-plan-card > h2 {
+  font-size: 2.3rem;
+  margin-bottom: 4px;
+}
+
+.kg-progress-plan-card > p {
+  color: #888;
+  font-size: 0.85rem;
+  margin-bottom: 24px;
+}
+
+/* Statistics rows */
+
+.kg-progress-stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 13px 0;
+  border-top: 1px solid #eee;
+  font-size: 0.9rem;
+}
+
+.kg-progress-stat-row span {
+  color: #777;
+}
+
+.kg-progress-stat-row strong {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+/* Language grid */
+
+.kg-progress-language-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.kg-progress-language-card {
+  padding: 25px;
+  border: 1px solid #eee8f5;
+  border-radius: 20px;
+  background: #fcfbfd;
+}
+
+.kg-progress-language-total {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 20px;
+}
+
+.kg-progress-language-total strong {
+  font-size: 2rem;
+  margin-bottom: 4px;
+}
+
+.kg-progress-language-total span {
+  font-size: 0.85rem;
+  color: #888;
+}
+
+/* Continue learning */
+
+.kg-progress-link {
+  display: inline-flex;
+  margin-top: 20px;
+  color: var(--purple);
+  font-weight: 700;
+  font-size: 0.9rem;
+  text-decoration: none;
+  transition: opacity 0.2s ease;
+}
+
+.kg-progress-link:hover {
+  opacity: 0.7;
+}
+
+/* Empty state */
+
+.kg-progress-empty {
+  padding: 35px 20px;
+  text-align: center;
+  border-radius: 18px;
+  background: #faf8fc;
+}
+
+.kg-progress-empty h3 {
+  font-size: 1.1rem;
+  margin-bottom: 10px;
+}
+
+.kg-progress-empty p {
+  color: #888;
+  margin-bottom: 20px;
+}
+
+.kg-progress-empty a {
+  display: inline-block;
+  color: var(--purple);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+/* Loading */
+
+.kg-progress-loading {
+  padding: 50px 20px;
+  text-align: center;
+  color: #777;
+}
+
+/* Error */
+
+.kg-progress-error {
+  padding: 22px;
+  margin-bottom: 25px;
+  background: #fff2f0;
+  color: #9c3025;
+  border: 1px solid #f3d1ca;
+  border-radius: 16px;
+}
+
+.kg-progress-error h3 {
+  margin-bottom: 12px;
+}
+
+.kg-progress-error p {
+  margin-bottom: 8px;
+  font-size: 0.9rem;
+  overflow-wrap: anywhere;
+}
+
+.kg-progress-error button {
+  margin-top: 15px;
+  padding: 10px 18px;
+  border: none;
+  border-radius: 10px;
+  background: #9c3025;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* Footer */
+
+.kg-progress-footer {
+  display: flex;
+  justify-content: center;
+  gap: 18px;
+  flex-wrap: wrap;
+  padding: 15px 0;
+}
+
+.kg-progress-footer a {
+  text-decoration: none;
+  color: var(--purple);
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+/* =========================================
+   RESPONSIVE
+========================================= */
+
+@media (max-width: 850px) {
+  .kg-progress-container {
+    width: 94%;
+    padding: 35px 0;
+  }
+
+  .kg-progress-overview {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .kg-progress-main-card {
+    grid-column: 1 / -1;
+  }
+
+  .kg-progress-language-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .kg-progress-container {
+    width: 92%;
+    padding: 25px 0;
+  }
+
+  .kg-progress-header {
+    margin-bottom: 25px;
+  }
+
+  .kg-progress-header h1 {
+    font-size: 2.3rem;
+  }
+
+  .kg-progress-header p:last-child {
+    font-size: 0.9rem;
+  }
+
+  .kg-progress-overview {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .kg-progress-main-card {
+    grid-column: auto;
+  }
+
+  .kg-progress-card {
+    padding: 22px;
+    border-radius: 18px;
+  }
+
+  .kg-progress-card h2 {
+    font-size: 2.2rem;
+  }
+
+  .kg-progress-section {
+    padding: 22px 18px;
+    border-radius: 20px;
+  }
+
+  .kg-progress-section > h2 {
+    font-size: 1.2rem;
+  }
+
+  .kg-progress-plan-grid {
+    grid-template-columns: 1fr;
+    gap: 15px;
+  }
+
+  .kg-progress-plan-card,
+  .kg-progress-language-card {
+    padding: 20px;
+  }
+
+  .kg-progress-footer {
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+  }
+}
+
+
+/* Progress counters and bars */
+
+.kg-progress-bar-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.kg-progress-bar-track {
+  height: 10px;
+  flex: 1;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #ece5f3;
+}
+
+.kg-progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--purple), var(--purple-dark));
+  border-radius: 999px;
+  transition: width 0.4s ease;
+}
+
+.kg-progress-percentage {
+  min-width: 38px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--purple);
+  text-align: right;
+}
+
+.kg-progress-detail {
+  margin-top: 22px;
+}
+
+.kg-progress-detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.9rem;
+  margin-bottom: 8px;
+}
+
+.kg-progress-detail-header span {
+  color: #777;
+}
+
+.kg-progress-detail-header strong {
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+.kg-progress-language-card .kg-progress-link {
+  margin-top: 24px;
+}
+
+@media (max-width: 600px) {
+  .kg-progress-bar-wrapper {
+    gap: 8px;
+  }
+
+  .kg-progress-detail-header {
+    font-size: 0.85rem;
+  }
+}
