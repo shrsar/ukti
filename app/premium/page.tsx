@@ -312,7 +312,7 @@ export default function PremiumPage() {
 
       <section className="premium-container">
         <div className="premium-heading">
-          <p className="dashboard-eyebrow">Ukti MEMBERSHIP</p>
+          <p className="dashboard-eyebrow">KaKhaGaGha MEMBERSHIP</p>
 
           <h1>Build your language journey</h1>
 
@@ -428,7 +428,7 @@ export default function PremiumPage() {
               </p>
 
               <p className="subscription-description">
-                Enjoy the complete Ukti learning experience.
+                Enjoy the complete KaKhaGaGha learning experience.
               </p>
 
               <ul className="subscription-features">
@@ -491,7 +491,7 @@ export default function PremiumPage() {
         )}
 
         <p className="premium-footer">
-          Your language selections and plan are saved to your Ukti account. No refund possible under any circumstances
+          Your language selections and plan are saved to your KaKhaGaGha account. No refund possible under any circumstances
         </p>
       </section>
     </main>
