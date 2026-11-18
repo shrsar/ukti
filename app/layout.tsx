@@ -15,7 +15,7 @@ const geistMono = Geist({
 });
 
 export const metadata: Metadata = {
-  title: "Ukti | Pronunciation-First Language Learning",
+  title: "KaKhaGaGha | Pronunciation-First Language Learning",
   description:
     "Learn the words. Master the sound. Speak with confidence.",
   other: {
