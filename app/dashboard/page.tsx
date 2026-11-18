@@ -208,7 +208,7 @@ export default function Dashboard() {
     return (
       <main className="Ukti-page">
         <p style={{ textAlign: "center", padding: "80px 20px" }}>
-          Loading Ukti...
+          Loading KaKhaGaGha...
         </p>
       </main>
     );
@@ -227,7 +227,7 @@ export default function Dashboard() {
 
           <Link href="/practice">Practice</Link>
 
-          <a href="#progress">Progress</a>
+          <a href="/progress">Progress</a>
         </nav>
 
         <div className="nav-actions">
@@ -468,7 +468,7 @@ export default function Dashboard() {
           <h1>
             Welcome to
             <span className="hero-title-brand">
-              Ukti<span>.</span>
+              KaKhaGaGha<span>.</span>
             </span>
           </h1>
 
@@ -477,7 +477,7 @@ export default function Dashboard() {
           <p className="hero-description">
             Learn to speak with confidence. Listen, practise,
             and improve your pronunciation one word at a time.
-            Make every word count with Ukti.
+            Make every word count with KaKhaGaGha.
           </p>
 
           <button
