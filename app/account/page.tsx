@@ -285,7 +285,7 @@ export default function AccountPage() {
                 <h2>Change Password</h2>
 
                 <p className="account-description">
-                  Create a new password for your Ukti account.
+                  Create a new password for your KaKhaGaGha account.
                 </p>
 
                 <div className="account-field">
@@ -407,7 +407,7 @@ export default function AccountPage() {
                 <h2>Notifications</h2>
 
                 <p className="account-description">
-                  Control whether Ukti can send you notifications.
+                  Control whether KaKhaGaGha can send you notifications.
                 </p>
 
                 <div className="account-notification-row">
@@ -443,7 +443,7 @@ export default function AccountPage() {
                 <h2>Delete Account</h2>
 
                 <p className="account-description">
-                  Permanently delete your Ukti account.
+                  Permanently delete your KaKhaGaGha account.
                 </p>
 
                 {!deleteConfirmation ? (
@@ -469,7 +469,7 @@ export default function AccountPage() {
 
                     <p>
                       This action cannot be undone. You will lose access
-                      to your Ukti account.
+                      to your KaKhaGaGha account.
                     </p>
 
                     <button

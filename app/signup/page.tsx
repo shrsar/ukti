@@ -135,7 +135,7 @@ export default function SignupPage() {
           <h1>Create your account</h1>
 
           <p className="login-page-subtitle">
-            Start your language learning journey with Ukti.
+            Start your language learning journey with KaKhaGaGha.
           </p>
 
           <form className="login-form" onSubmit={handleSubmit}>
@@ -233,7 +233,7 @@ export default function SignupPage() {
 
                 <p className="verification-hint">
                   Open your inbox or spam folder and click the verification
-                  link to activate your Ukti account.
+                  link to activate your KaKhaGaGha account.
                 </p>
 
                 <Link href="/login" className="verification-login-link">

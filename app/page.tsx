@@ -210,7 +210,7 @@ function NotificationMenu() {
           ) : notifications.length === 0 ? (
             <div className="notification-empty">
               <p>No notifications yet.</p>
-              <span>Your Ukti updates will appear here.</span>
+              <span>Your KaKhaGaGha updates will appear here.</span>
             </div>
           ) : (
             <div className="notification-list">
@@ -346,7 +346,7 @@ export default function Home() {
           <h1>
             Welcome to
             <span className="hero-title-brand">
-              Ukti<span>.</span>
+              KaKhaGaGha<span>.</span>
             </span>
           </h1>
 
@@ -355,7 +355,7 @@ export default function Home() {
           <p className="hero-description">
             Learn to speak with confidence. Listen, practise,
             and improve your pronunciation one word at a time.
-            Make every word count with Ukti.
+            Make every word count with KaKhaGaGha.
           </p>
 
           <a

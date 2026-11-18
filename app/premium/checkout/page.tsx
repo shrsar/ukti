@@ -132,7 +132,7 @@ export default function PremiumCheckoutPage() {
         key: orderData.key_id,
         amount: orderData.amount,
         currency: orderData.currency,
-        name: "Ukti",
+        name: "KaKhaGaGha",
 
         description: `Premium - ${PREMIUM_PRICE} per language / ${PREMIUM_BILLING_PERIOD}`,
 
@@ -249,7 +249,7 @@ export default function PremiumCheckoutPage() {
       <section className="premium-container">
         <div className="premium-heading">
           <p className="dashboard-eyebrow">
-            Ukti PREMIUM
+            KaKhaGaGha PREMIUM
           </p>
 
           <h1>Complete your payment</h1>
@@ -290,7 +290,7 @@ export default function PremiumCheckoutPage() {
             </p>
 
             <p>
-              The amount is calculated by Ukti&apos;s server
+              The amount is calculated by KaKhaGaGha&apos;s server
               and cannot be changed in the checkout.
             </p>
           </div>

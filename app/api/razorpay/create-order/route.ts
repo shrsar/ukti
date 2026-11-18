@@ -131,11 +131,11 @@ export async function POST(request: Request) {
     const order = await razorpay.orders.create({
       amount: totalAmount,
       currency: "INR",
-      receipt: `Ukti_${Date.now()}`,
+      receipt: `KaKhaGaGha_${Date.now()}`,
       partial_payment: false,
       notes: {
         user_id: user.id,
-        product: "Ukti Premium - 1 month",
+        product: "KaKhaGaGha Premium - 1 month",
         languages: languages.join(", "),
         language_count: String(languages.length),
         price_per_language_paise: String(PREMIUM_AMOUNT_PAISE),

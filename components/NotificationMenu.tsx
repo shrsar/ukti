@@ -53,7 +53,7 @@ export default function NotificationMenu() {
 
           <div className="notification-empty">
             <p>No notifications yet.</p>
-            <span>Your Ukti updates will appear here.</span>
+            <span>Your KaKhaGaGha updates will appear here.</span>
           </div>
         </div>
       )}
