@@ -136,7 +136,7 @@ export default function LessonsPage() {
 
       <div className="premium-container">
         <div className="checkout-card">
-          <h1>Less</h1>
+          <h1>Lessons</h1>
           <p>Choose a language and continue learning at your own pace.</p>
 
           <div
